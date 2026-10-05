@@ -626,17 +626,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showToast(message, type = 'normal') {
         const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        // Limit visible toasts to at most 3
+        while (container.children.length >= 3) {
+            container.removeChild(container.firstElementChild);
+        }
+
         const toast = document.createElement('div');
         toast.className = `toast ${type === 'danger' ? 'toast-danger' : type === 'success' ? 'toast-success' : ''}`;
         toast.textContent = message;
         container.appendChild(toast);
 
         setTimeout(() => {
-            toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
             toast.style.opacity = '0';
-            toast.style.transform = 'translateY(-10px)';
-            setTimeout(() => toast.remove(), 300);
-        }, 2600);
+            toast.style.transform = 'translateY(8px)';
+            setTimeout(() => toast.remove(), 250);
+        }, 2400);
     }
 
     function showFloatingEmoji(emoji) {
@@ -921,7 +928,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sound.play('place');
         renderPlacementGrid();
         renderShipInventory();
-        showToast('Random fleet placed');
     });
 
     btnClearPlacement.addEventListener('click', () => {
@@ -1154,7 +1160,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (shotResult.result === 'miss') {
             sound.play('miss');
-            showToast('Miss');
             // Turn passes to opponent
             activePlayer = activePlayer === 1 ? 2 : 1;
             updateBattleUI();
@@ -1166,7 +1171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (shotResult.result === 'hit') {
             sound.play('hit');
             if (isFriendlyShooter) battleStats.hits++;
-            showToast('Hit!', 'success');
             // Shooter keeps the turn!
             updateBattleUI();
 
@@ -1177,7 +1181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (shotResult.result === 'sunk') {
             sound.play('sunk');
             if (isFriendlyShooter) battleStats.hits++;
-            showToast('Ship sunk!', 'success');
 
             if (shotResult.allSunk) {
                 // Game Over!
@@ -1210,19 +1213,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.result === 'miss') {
                 sound.play('miss');
-                showToast('AI miss');
                 activePlayer = 1;
                 isShootingAllowed = true;
                 updateBattleUI();
             } else if (result.result === 'hit') {
                 sound.play('hit');
-                showToast('AI hit', 'danger');
                 aiEngine.registerShotResult(aiShotIndex, 'hit');
                 updateBattleUI();
                 triggerAiTurn(750);
             } else if (result.result === 'sunk') {
                 sound.play('sunk');
-                showToast('Ship lost', 'danger');
                 aiEngine.registerShotResult(aiShotIndex, 'sunk', result.halo);
 
                 if (result.allSunk) {
@@ -1476,19 +1476,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (result.result === 'miss') {
                     sound.play('miss');
-                    showToast('Opponent missed');
                     // Turn passes to us
                     activePlayer = (myOnlineRole === 'host') ? 1 : 2;
                     isShootingAllowed = true;
                     updateBattleUI();
                 } else if (result.result === 'hit') {
                     sound.play('hit');
-                    showToast('Opponent hit', 'danger');
                     // Opponent keeps turn
                     updateBattleUI();
                 } else if (result.result === 'sunk') {
                     sound.play('sunk');
-                    showToast('Ship lost', 'danger');
                     if (result.allSunk) {
                         handleGameOver(false);
                         return;
@@ -1508,7 +1505,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     sound.play('miss');
                     player2Board.shots[shotIdx] = 'miss';
                     player2Board.lastShotIndex = shotIdx;
-                    showToast('Miss');
                     // Turn passes to opponent
                     activePlayer = (myOnlineRole === 'host') ? 2 : 1;
                     updateBattleUI();
@@ -1517,7 +1513,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     battleStats.hits++;
                     player2Board.shots[shotIdx] = 'hit';
                     player2Board.lastShotIndex = shotIdx;
-                    showToast('Hit!', 'success');
                     updateBattleUI();
                 } else if (data.result === 'sunk') {
                     sound.play('sunk');
@@ -1533,8 +1528,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-
-                    showToast('Ship sunk!', 'success');
 
                     if (data.allSunk) {
                         handleGameOver(true);
