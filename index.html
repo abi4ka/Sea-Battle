@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sea Battle — Naval Warfare</title>
+    <meta name="description" content="Classic Battleship game online and vs AI. Minimalist futuristic radar interface, WebSockets, and smart AI.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase Realtime Client Library & Config -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Ambient Background Glows -->
+    <div class="ambient-bg">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+    </div>
+
+    <!-- Toast Notifications & Reactions Overlay -->
+    <div id="toast-container" class="toast-container"></div>
+    <div id="reaction-container" class="reaction-container"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 17l10 5 10-5M2 12l10 5 10-5M12 2l10 5-10 5-10-5z"></path></svg>
+                </div>
+                <h1>SEA BATTLE</h1>
+            </div>
+            <div class="header-actions">
+                <button id="btn-sound-toggle" class="btn-icon-head" title="Sound: On / Off">
+                    <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    <svg id="sound-icon-off" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                </button>
+                <button id="btn-rules-toggle" class="btn-icon-head" title="Rules of Engagement">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- SCREEN 1: MAIN MENU -->
+        <section id="screen-menu" class="card screen active">
+            <h2 class="card-subtitle">SELECT COMBAT MODE</h2>
+            <div class="menu-options">
+                <button id="btn-mode-ai" class="btn btn-secondary btn-large menu-btn">
+                    <div class="menu-btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 16h0M16 16h0"></path></svg>
+                    </div>
+                    <div class="menu-btn-content">
+                        <span class="menu-btn-title">VS COMPUTER</span>
+                        <span class="menu-btn-desc">Single-player combat against tactical AI</span>
+                    </div>
+                </button>
+
+                <button id="btn-mode-online" class="btn btn-secondary btn-large menu-btn">
+                    <div class="menu-btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    </div>
+                    <div class="menu-btn-content">
+                        <span class="menu-btn-title">ONLINE MULTIPLAYER</span>
+                        <span class="menu-btn-desc">Cross-device match via direct link or room code</span>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: ONLINE LOBBY -->
+        <section id="screen-online-lobby" class="card screen">
+            <div class="card-header-nav">
+                <button class="btn-back btn-to-menu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Menu
+                </button>
+                <span class="card-tag">ONLINE</span>
+            </div>
+
+            <div class="lobby-actions">
+                <button id="btn-create-room" class="btn btn-primary btn-full btn-large">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    Create Room
+                </button>
+                
+                <div class="divider"><span>OR ENTER CODE</span></div>
+
+                <div class="input-group">
+                    <input type="text" id="input-room-code" placeholder="CODE" maxlength="6" autocomplete="off" spellcheck="false">
+                    <button id="btn-join-room" class="btn btn-secondary">Join</button>
+                </div>
+            </div>
+
+            <div class="network-badge" id="network-status-badge">
+                <span class="dot"></span>
+                <span id="network-status-text">Connecting...</span>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: ONLINE WAITING -->
+        <section id="screen-waiting" class="card screen">
+            <div class="card-header-nav">
+                <button class="btn-back btn-to-menu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Menu
+                </button>
+                <span class="card-tag">WAITING</span>
+            </div>
+
+            <div class="waiting-box">
+                <div class="loader-radar"></div>
+                <h3 id="waiting-title">Waiting for Opponent...</h3>
+                
+                <div class="code-box">
+                    <span id="display-room-code" class="code-text">------</span>
+                    <button id="btn-copy-code" class="btn-icon" title="Copy Code">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+
+                <button id="btn-copy-link" class="btn btn-accent btn-full">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    Copy Direct Link
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: FLEET PLACEMENT -->
+        <section id="screen-placement" class="card screen">
+            <div class="card-header-nav">
+                <button class="btn-back btn-to-menu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Menu
+                </button>
+                <span class="card-tag" id="placement-player-tag">FLEET</span>
+            </div>
+
+            <div class="placement-container">
+                <div class="placement-layout">
+                    <!-- Placement 10x10 Board -->
+                    <div class="board-wrapper">
+                        <div class="board-label">
+                            <span>YOUR FLEET</span>
+                            <span class="fleet-count" id="placement-count">0 / 10</span>
+                        </div>
+                        <div class="grid-outer">
+                            <div class="grid-table">
+                                <div class="grid-header-row">
+                                    <div class="coord-corner"></div>
+                                    <div class="coord-col">A</div><div class="coord-col">B</div><div class="coord-col">C</div>
+                                    <div class="coord-col">D</div><div class="coord-col">E</div><div class="coord-col">F</div>
+                                    <div class="coord-col">G</div><div class="coord-col">H</div><div class="coord-col">I</div>
+                                    <div class="coord-col">J</div>
+                                </div>
+                                <div class="grid-body-row">
+                                    <div class="grid-num-col">
+                                        <div class="coord-row">1</div><div class="coord-row">2</div><div class="coord-row">3</div>
+                                        <div class="coord-row">4</div><div class="coord-row">5</div><div class="coord-row">6</div>
+                                        <div class="coord-row">7</div><div class="coord-row">8</div><div class="coord-row">9</div>
+                                        <div class="coord-row">10</div>
+                                    </div>
+                                    <div id="placement-grid" class="battle-grid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ship Dock Selector & Actions -->
+                    <div class="ship-dock">
+                        <div class="dock-title">
+                            <span>Armada</span>
+                            <span id="dock-orientation-label">Horizontal</span>
+                        </div>
+
+                        <div class="ships-list" id="ships-inventory">
+                            <!-- Ships to place will be rendered dynamically -->
+                        </div>
+
+                        <button id="btn-rotate-ship" class="btn btn-secondary btn-full">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                            <span id="rotate-btn-text">Rotate (R)</span>
+                        </button>
+
+                        <div class="dock-actions">
+                            <button id="btn-random-placement" class="btn btn-secondary" title="Deploy fleet automatically">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><circle cx="8" cy="8" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+                                Random
+                            </button>
+                            <button id="btn-clear-placement" class="btn btn-danger" title="Clear board">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Reset
+                            </button>
+                        </div>
+
+                        <button id="btn-ready-battle" class="btn btn-primary btn-full btn-large" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            Battle!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 5: BATTLE ARENA -->
+        <section id="screen-battle" class="card screen">
+            <div class="card-header-nav">
+                <button class="btn-back btn-to-menu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Menu
+                </button>
+                <span class="card-tag" id="battle-mode-tag">VS AI</span>
+            </div>
+
+            <!-- Turn Banner -->
+            <div class="turn-banner" id="battle-turn-banner">
+                <div class="turn-indicator">
+                    <div class="turn-pulse-dot" id="turn-dot"></div>
+                    <div>
+                        <div class="turn-text" id="turn-title">Your Turn</div>
+                        <div class="turn-subtext" id="turn-subtitle">Select target on enemy radar</div>
+                    </div>
+                </div>
+                <button id="btn-surrender" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;">
+                    Surrender
+                </button>
+            </div>
+
+            <!-- Mobile Board Tabs -->
+            <div class="mobile-board-tabs" id="mobile-tabs">
+                <button class="mobile-tab-btn" id="tab-my-fleet" data-target="my-fleet">
+                    My Fleet
+                </button>
+                <button class="mobile-tab-btn active" id="tab-enemy-radar" data-target="enemy-radar">
+                    Enemy Radar <span class="tab-badge hidden" id="enemy-tab-badge"></span>
+                </button>
+            </div>
+
+            <!-- Dual Boards -->
+            <div class="boards-container">
+                <!-- Friendly Fleet Board -->
+                <div class="board-wrapper" id="wrapper-my-fleet">
+                    <div class="board-label">
+                        <span>MY FLEET</span>
+                    </div>
+                    <div class="grid-outer">
+                        <div class="grid-table">
+                            <div class="grid-header-row">
+                                <div class="coord-corner"></div>
+                                <div class="coord-col">A</div><div class="coord-col">B</div><div class="coord-col">C</div>
+                                <div class="coord-col">D</div><div class="coord-col">E</div><div class="coord-col">F</div>
+                                <div class="coord-col">G</div><div class="coord-col">H</div><div class="coord-col">I</div>
+                                <div class="coord-col">J</div>
+                            </div>
+                            <div class="grid-body-row">
+                                <div class="grid-num-col">
+                                    <div class="coord-row">1</div><div class="coord-row">2</div><div class="coord-row">3</div>
+                                    <div class="coord-row">4</div><div class="coord-row">5</div><div class="coord-row">6</div>
+                                    <div class="coord-row">7</div><div class="coord-row">8</div><div class="coord-row">9</div>
+                                    <div class="coord-row">10</div>
+                                </div>
+                                <div id="my-battle-grid" class="battle-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fleet-tracker" id="my-fleet-tracker">
+                        <!-- Mini status of my surviving ships -->
+                    </div>
+                </div>
+
+                <!-- Opponent Radar Target Board -->
+                <div class="board-wrapper" id="wrapper-enemy-radar">
+                    <div class="board-label">
+                        <span>ENEMY RADAR</span>
+                    </div>
+                    <div class="grid-outer enemy-grid">
+                        <div class="grid-table">
+                            <div class="grid-header-row">
+                                <div class="coord-corner"></div>
+                                <div class="coord-col">A</div><div class="coord-col">B</div><div class="coord-col">C</div>
+                                <div class="coord-col">D</div><div class="coord-col">E</div><div class="coord-col">F</div>
+                                <div class="coord-col">G</div><div class="coord-col">H</div><div class="coord-col">I</div>
+                                <div class="coord-col">J</div>
+                            </div>
+                            <div class="grid-body-row">
+                                <div class="grid-num-col">
+                                    <div class="coord-row">1</div><div class="coord-row">2</div><div class="coord-row">3</div>
+                                    <div class="coord-row">4</div><div class="coord-row">5</div><div class="coord-row">6</div>
+                                    <div class="coord-row">7</div><div class="coord-row">8</div><div class="coord-row">9</div>
+                                    <div class="coord-row">10</div>
+                                </div>
+                                <div id="enemy-battle-grid" class="battle-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fleet-tracker" id="enemy-fleet-tracker">
+                        <!-- Mini status of enemy sunken ships -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emoji reactions bar (Online mode) -->
+            <div id="reactions-bar" class="reactions-bar hidden">
+                <button class="emoji-btn" data-emoji="👍">👍</button>
+                <button class="emoji-btn" data-emoji="🎯">🎯</button>
+                <button class="emoji-btn" data-emoji="💥">💥</button>
+                <button class="emoji-btn" data-emoji="😡">😡</button>
+                <button class="emoji-btn" data-emoji="😂">😂</button>
+            </div>
+
+            <!-- Host Invite & Code Peek Bar (Online host) -->
+            <div id="host-invite-bar" class="host-invite-bar hidden">
+                <div class="code-peek-group">
+                    <input type="text" id="game-room-code-input" class="code-peek-input" readonly value="******" spellcheck="false" title="Room Code" />
+                    <button id="btn-toggle-peek" class="btn-toggle-peek" title="Show / Hide Code" type="button">
+                        <svg id="icon-eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        <svg id="icon-eye-open" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                    <button id="btn-copy-game-code" class="btn-toggle-peek" title="Copy Code" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+                <button id="btn-share-online" class="btn btn-secondary btn-icon-only" title="Copy Game Link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL: GAME OVER -->
+    <div id="modal-gameover" class="modal-overlay">
+        <div class="modal-card">
+            <h2 id="modal-gameover-title" class="modal-title victory">VICTORY!</h2>
+            <p id="modal-gameover-desc" style="color: var(--text-secondary); font-size: 0.95rem;">You sank the entire enemy fleet!</p>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">SHOTS</span>
+                    <span class="stat-value" id="stat-shots">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">HITS</span>
+                    <span class="stat-value" id="stat-hits">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">ACCURACY</span>
+                    <span class="stat-value" id="stat-accuracy">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">ROUNDS</span>
+                    <span class="stat-value" id="stat-rounds">0</span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                <button id="btn-gameover-rematch" class="btn btn-primary btn-full">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    <span id="btn-gameover-rematch-text">Play Again</span>
+                </button>
+                <button id="btn-gameover-menu" class="btn btn-secondary btn-full">
+                    Main Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RULES -->
+    <div id="modal-rules" class="modal-overlay">
+        <div class="modal-card">
+            <h2 class="modal-title" style="color: var(--color-cyan); font-size: 1.5rem;">RULES OF ENGAGEMENT</h2>
+            <div class="rules-content">
+                <h3>Fleet Composition (10 Ships):</h3>
+                <ul>
+                    <li><strong>1 × Battleship</strong> (4 cells)</li>
+                    <li><strong>2 × Cruisers</strong> (3 cells)</li>
+                    <li><strong>3 × Destroyers</strong> (2 cells)</li>
+                    <li><strong>4 × Patrol Boats</strong> (1 cell)</li>
+                </ul>
+                <h3>Deployment:</h3>
+                <p>Ships cannot touch each other horizontally, vertically, or diagonally (minimum 1 cell buffer).</p>
+                <h3>Combat Rules:</h3>
+                <ul>
+                    <li>Players take turns firing at coordinates on the 10×10 radar grid.</li>
+                    <li><strong>Hitting or sinking an enemy ship grants an immediate extra shot!</strong></li>
+                    <li>Missing passes the turn to your opponent.</li>
+                    <li>Surrounding water buffer (halo) is automatically marked upon sinking a ship.</li>
+                </ul>
+            </div>
+            <button id="btn-close-rules" class="btn btn-secondary btn-full">
+                Got It
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
