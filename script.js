@@ -592,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let player2Board = new BattleshipBoard(); // Used for AI or opponent radar
     let selectedShipType = 'battleship';
     let isHorizontalPlacement = true;
+    let currentHoverIndex = null;
 
     // Battle state
     let activePlayer = 1; // 1 or 2
@@ -686,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initPlacementGrid() {
         isHorizontalPlacement = true;
+        currentHoverIndex = null;
         dockOrientationLabel.textContent = 'Horizontal';
         btnRotateShip.classList.remove('is-vertical');
         const rotateTextEl = btnRotateShip.querySelector('#rotate-btn-text');
@@ -698,7 +700,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.dataset.index = i;
 
             cell.addEventListener('mouseenter', () => onPlacementCellHover(i));
-            cell.addEventListener('mouseleave', clearPlacementPreviews);
             cell.addEventListener('click', () => onPlacementCellClick(i));
 
             placementGridEl.appendChild(cell);
@@ -790,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function onPlacementCellHover(startIndex) {
+        currentHoverIndex = startIndex;
         clearPlacementPreviews();
         const board = getCurrentPlacementBoard();
         const shipDef = FLEET_DEFINITIONS.find(d => d.type === selectedShipType);
@@ -862,6 +864,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderShipInventory();
             if (board.isFleetReady()) {
                 showToast('Fleet ready', 'success');
+            } else if (currentHoverIndex !== null) {
+                onPlacementCellHover(currentHoverIndex);
             }
         } else {
             sound.play('miss');
@@ -879,12 +883,33 @@ document.addEventListener('DOMContentLoaded', () => {
             rotateTextEl.textContent = 'Rotate';
         }
         sound.play('place');
+
+        // Immediately update preview under cursor if hovering over grid
+        if (currentHoverIndex !== null) {
+            onPlacementCellHover(currentHoverIndex);
+        }
     }
 
+    // Placement grid mouse leave and right-click to rotate
+    placementGridEl.addEventListener('mouseleave', () => {
+        currentHoverIndex = null;
+        clearPlacementPreviews();
+    });
+
+    placementGridEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        toggleOrientation();
+    });
+
     btnRotateShip.addEventListener('click', toggleOrientation);
+
+    // Support both English (R) and Russian (К / KeyR) keyboard layouts
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'r' || e.key === 'R') {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') {
             if (screenPlacement.classList.contains('active')) {
+                e.preventDefault();
                 toggleOrientation();
             }
         }
