@@ -13,7 +13,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- Supabase Realtime Client Library & Config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,49 +26,38 @@
     <div id="reaction-container" class="reaction-container" aria-hidden="true"></div>
 
     <div class="app-layout">
-        <!-- Top Navigation Bar -->
-        <header class="navbar">
-            <div class="nav-brand">
-                <img src="assets/icons/icon.svg" width="22" height="22" alt="">
-                <h1>Sea Battle</h1>
-            </div>
-
-            <!-- Subtle center status -->
-            <div class="nav-center">
-                <div id="status-badge" class="hidden"></div>
-            </div>
-
-            <div class="nav-actions">
-                <button type="button" id="btn-sound-toggle" class="btn-icon" title="Sound">
-                    <svg id="sound-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                    <svg id="sound-icon-off" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-                </button>
-                <button type="button" id="btn-rules-toggle" class="btn-icon" title="Rules">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                </button>
-            </div>
-        </header>
+        <!-- Floating Top Actions (Sound & Rules) -->
+        <div class="top-nav-actions">
+            <div id="status-badge" class="hidden"></div>
+            <button type="button" id="btn-sound-toggle" class="btn-icon" title="Sound">
+                <svg id="sound-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <svg id="sound-icon-off" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </button>
+            <button type="button" id="btn-rules-toggle" class="btn-icon" title="Rules">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </button>
+        </div>
 
         <!-- Main Workspace -->
         <main class="main-stage">
             <!-- SCREEN 1: MENU -->
-            <section id="screen-menu" class="card screen-menu-card screen active">
-                <div class="menu-brand">
-                    <div class="brand-ship-icon">
-                        <img src="assets/icons/icon.svg" width="48" height="48" alt="">
+            <section id="screen-menu" class="screen-menu-wrapper screen active">
+                <header class="menu-header">
+                    <h1 class="game-title">SEA BATTLE</h1>
+                </header>
+
+                <div class="card menu-card">
+                    <h2 class="card-subtitle">SELECT MODE</h2>
+                    <div class="menu-options">
+                        <button id="btn-mode-ai" class="btn btn-secondary menu-btn">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 16h0M16 16h0"></path></svg>
+                            <span>VS COMPUTER</span>
+                        </button>
+                        <button id="btn-mode-online" class="btn btn-secondary menu-btn">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span>ONLINE MULTIPLAYER</span>
+                        </button>
                     </div>
-                    <h2>Sea Battle</h2>
-                </div>
-                
-                <div class="menu-actions">
-                    <button id="btn-mode-ai" class="btn btn-secondary btn-menu">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 16h0M16 16h0"></path></svg>
-                        <span>vs Computer</span>
-                    </button>
-                    <button id="btn-mode-online" class="btn btn-secondary btn-menu">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                        <span>Online</span>
-                    </button>
                 </div>
             </section>
 
