@@ -513,7 +513,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const statShots = document.getElementById('stat-shots');
     const statHits = document.getElementById('stat-hits');
     const statAccuracy = document.getElementById('stat-accuracy');
-    const statRounds = document.getElementById('stat-rounds');
     const btnGameOverRematch = document.getElementById('btn-gameover-rematch');
     const btnGameOverRematchText = document.getElementById('btn-gameover-rematch-text');
     const btnGameOverMenu = document.getElementById('btn-gameover-menu');
@@ -599,8 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isShootingAllowed = false;
     let battleStats = {
         shots: 0,
-        hits: 0,
-        rounds: 0
+        hits: 0
     };
     let aiEngine = null;
 
@@ -965,7 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function launchBattle(startingPlayer = 1) {
         activePlayer = startingPlayer;
-        battleStats = { shots: 0, hits: 0, rounds: 0 };
+        battleStats = { shots: 0, hits: 0 };
         isShootingAllowed = true;
 
         if (gameMode === 'ai') {
@@ -1258,7 +1256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statShots.textContent = battleStats.shots;
         statHits.textContent = battleStats.hits;
         statAccuracy.textContent = `${accuracy}%`;
-        statRounds.textContent = battleStats.shots;
 
         if (gameMode === 'online') {
             btnGameOverRematch.classList.remove('hidden');
