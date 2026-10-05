@@ -120,12 +120,15 @@
             <!-- SCREEN 4: FLEET PLACEMENT -->
             <section id="screen-placement" class="card screen">
                 <div class="card-bar">
-                    <button class="btn-back btn-to-menu">
+                    <button class="btn-back btn-to-menu" title="Return to Menu">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                        Menu
+                        <span>Menu</span>
                     </button>
-                    <span class="count-pill" id="placement-count">0 / 10</span>
-                    <span id="placement-player-tag" class="hidden"></span>
+                    <h2 class="card-subtitle placement-title">FLEET SETUP</h2>
+                    <div class="placement-count-badge">
+                        <span class="count-pill" id="placement-count">0 / 10</span>
+                        <span id="placement-player-tag" class="hidden"></span>
+                    </div>
                 </div>
 
                 <div class="placement-layout">
@@ -155,30 +158,34 @@
 
                     <!-- Fleet Dock -->
                     <div class="ship-dock">
-                        <div class="dock-tools">
-                            <button id="btn-rotate-ship" class="btn btn-secondary btn-sm" title="Rotate (R)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                                <span id="rotate-btn-text">Rotate</span>
-                                <span class="shortcut">R</span>
+                        <div class="dock-actions">
+                            <button id="btn-rotate-ship" class="btn btn-secondary btn-rotate-toggle" title="Toggle Orientation (Press R)">
+                                <div class="rotate-btn-content">
+                                    <svg class="rotate-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                    <span id="rotate-btn-text">Rotate</span>
+                                    <span class="kbd-shortcut">R</span>
+                                </div>
+                                <span id="dock-orientation-label" class="orientation-badge">Horizontal</span>
                             </button>
-                            <span id="dock-orientation-label" class="hidden">Horizontal</span>
 
-                            <button id="btn-random-placement" class="btn btn-secondary btn-sm" title="Randomize">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><circle cx="8" cy="8" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
-                                Random
-                            </button>
-                            
-                            <button id="btn-clear-placement" class="btn btn-secondary btn-sm" title="Clear">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                Clear
-                            </button>
+                            <div class="dock-actions-row">
+                                <button id="btn-random-placement" class="btn btn-secondary btn-dock-action" title="Randomize Fleet">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><circle cx="8" cy="8" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+                                    <span>Random</span>
+                                </button>
+                                
+                                <button id="btn-clear-placement" class="btn btn-secondary btn-dock-action" title="Clear Grid">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Clear</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="ships-list" id="ships-inventory">
                             <!-- Populated dynamically -->
                         </div>
 
-                        <button id="btn-ready-battle" class="btn btn-primary btn-full" disabled>
+                        <button id="btn-ready-battle" class="btn btn-primary btn-full btn-start-game" disabled>
                             Start Game
                         </button>
                     </div>

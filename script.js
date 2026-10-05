@@ -685,6 +685,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initPlacementGrid() {
+        isHorizontalPlacement = true;
+        dockOrientationLabel.textContent = 'Horizontal';
+        btnRotateShip.classList.remove('is-vertical');
+        const rotateTextEl = btnRotateShip.querySelector('#rotate-btn-text');
+        if (rotateTextEl) rotateTextEl.textContent = 'Rotate';
+
         placementGridEl.innerHTML = '';
         for (let i = 0; i < TOTAL_CELLS; i++) {
             const cell = document.createElement('div');
@@ -714,6 +720,13 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = `ship-item ${selectedShipType === def.type ? 'selected' : ''} ${isCompleted ? 'completed' : ''}`;
             item.dataset.type = def.type;
 
+            const meta = document.createElement('div');
+            meta.className = 'ship-meta';
+
+            const name = document.createElement('span');
+            name.className = 'ship-name';
+            name.textContent = def.name;
+
             const visual = document.createElement('div');
             visual.className = 'ship-visual';
             for (let i = 0; i < def.size; i++) {
@@ -722,11 +735,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 visual.appendChild(deck);
             }
 
+            meta.appendChild(name);
+            meta.appendChild(visual);
+
             const info = document.createElement('div');
-            info.className = 'ship-count';
+            info.className = `ship-count ${isCompleted ? 'done' : ''}`;
             info.textContent = isCompleted ? '✓' : `×${remaining}`;
 
-            item.appendChild(visual);
+            item.appendChild(meta);
             item.appendChild(info);
 
             item.addEventListener('click', () => {
@@ -742,6 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalPlaced = board.ships.length;
         placementCountEl.textContent = `${totalPlaced} / 10`;
+        placementCountEl.classList.toggle('ready', totalPlaced === 10);
         btnReadyBattle.disabled = totalPlaced !== 10;
 
         // Auto-select next available ship type if current is completed
@@ -765,6 +782,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const shipId = board.grid[idx];
             if (shipId) {
                 cell.classList.add('has-ship');
+                const ship = board.ships.find(s => s.id === shipId);
+                if (ship) {
+                    const partIdx = ship.cells.indexOf(idx);
+                    if (ship.size === 1) {
+                        cell.classList.add('ship-single');
+                    } else {
+                        cell.classList.add(ship.isHorizontal ? 'ship-h' : 'ship-v');
+                        if (partIdx === 0) {
+                            cell.classList.add('ship-bow');
+                        } else if (partIdx === ship.size - 1) {
+                            cell.classList.add('ship-stern');
+                        } else {
+                            cell.classList.add('ship-mid');
+                        }
+                    }
+                }
                 cell.title = 'Click to remove ship';
             } else {
                 cell.removeAttribute('title');
@@ -796,9 +829,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const cells = placementGridEl.querySelectorAll('.cell');
-        previewIndices.forEach(idx => {
+        previewIndices.forEach((idx, pIdx) => {
             if (cells[idx]) {
                 cells[idx].classList.add(isValid ? 'preview-valid' : 'preview-invalid');
+                if (size === 1) {
+                    cells[idx].classList.add('preview-single');
+                } else {
+                    cells[idx].classList.add(isHorizontalPlacement ? 'preview-h' : 'preview-v');
+                    if (pIdx === 0) cells[idx].classList.add('preview-bow');
+                    else if (pIdx === size - 1) cells[idx].classList.add('preview-stern');
+                    else cells[idx].classList.add('preview-mid');
+                }
             }
         });
     }
@@ -806,7 +847,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearPlacementPreviews() {
         const cells = placementGridEl.querySelectorAll('.cell');
         cells.forEach(c => {
-            c.classList.remove('preview-valid', 'preview-invalid');
+            c.classList.remove(
+                'preview-valid', 'preview-invalid',
+                'preview-single', 'preview-h', 'preview-v',
+                'preview-bow', 'preview-mid', 'preview-stern'
+            );
         });
     }
 
@@ -856,9 +901,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleOrientation() {
         isHorizontalPlacement = !isHorizontalPlacement;
         dockOrientationLabel.textContent = isHorizontalPlacement ? 'Horizontal' : 'Vertical';
+        btnRotateShip.classList.toggle('is-vertical', !isHorizontalPlacement);
         const rotateTextEl = btnRotateShip.querySelector('#rotate-btn-text');
         if (rotateTextEl) {
-            rotateTextEl.textContent = isHorizontalPlacement ? 'Rotate' : 'Rotate (V)';
+            rotateTextEl.textContent = 'Rotate';
         }
         sound.play('place');
     }
@@ -977,8 +1023,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const myCells = myBattleGridEl.querySelectorAll('.cell');
         myCells.forEach((cell, idx) => {
             cell.className = 'cell';
-            if (myBoard.grid[idx] !== null) {
+            const shipId = myBoard.grid[idx];
+            if (shipId !== null) {
                 cell.classList.add('has-ship');
+                const ship = myBoard.ships.find(s => s.id === shipId);
+                if (ship) {
+                    const partIdx = ship.cells.indexOf(idx);
+                    if (ship.size === 1) {
+                        cell.classList.add('ship-single');
+                    } else {
+                        cell.classList.add(ship.isHorizontal ? 'ship-h' : 'ship-v');
+                        if (partIdx === 0) {
+                            cell.classList.add('ship-bow');
+                        } else if (partIdx === ship.size - 1) {
+                            cell.classList.add('ship-stern');
+                        } else {
+                            cell.classList.add('ship-mid');
+                        }
+                    }
+                }
             }
             if (myBoard.shots[idx] === 'miss') {
                 cell.classList.add('state-miss');
