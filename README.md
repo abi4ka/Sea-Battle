@@ -1,8 +1,8 @@
 # Sea Battle
 
-A modern, responsive web application for the classic naval combat game **Sea Battle (Battleship)**, featuring a futuristic radar interface, tactical AI, and cross-device online multiplayer via Supabase Realtime (WebSockets).
+A modern, responsive web application for the classic naval combat game **Sea Battle (Battleship)**, featuring a clean GitHub Dark Graphite interface, tactical AI, and cross-device online multiplayer via Supabase Realtime (WebSockets).
 
-Modeled after the architecture, style, and realtime engine of the **Tic-Tac-Toe** project.
+Modeled after the architecture and realtime engine of the **Tic-Tac-Toe** project, with visual design synchronized to the GitHub Dark Graphite design system of **Json-Formatter** and **Time-Calculator**.
 
 ---
 
@@ -36,8 +36,8 @@ Modeled after the architecture, style, and realtime engine of the **Tic-Tac-Toe*
 
 ## Tech Stack
 
-- **Frontend**: HTML5, Vanilla CSS3 (CSS Variables, Flexbox, CSS Grid, Glassmorphism `backdrop-filter`)
-- **Fonts**: Google Fonts (*Outfit*, *Inter*, *JetBrains Mono*)
+- **Frontend**: HTML5, Vanilla CSS3 (CSS Variables, Flexbox, CSS Grid, GitHub Primer Dark palette)
+- **Fonts**: Google Fonts (*Inter*, *JetBrains Mono*, system fonts)
 - **Programming Language**: Vanilla JavaScript (ES6+ Modules & Classes)
 - **Networking**: Supabase Realtime (WebSockets via Broadcast & Presence channels)
 - **Audio**: Web Audio API (procedural synthesis)
