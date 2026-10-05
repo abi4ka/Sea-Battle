@@ -714,110 +714,46 @@ body {
     background: rgba(18, 24, 38, 0.85);
     position: relative;
     cursor: pointer;
-    transition: background 0.12s ease, transform 0.1s ease;
+    transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.1s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
     padding: 0;
     outline: none;
+    border-radius: 4px;
 }
 
 .cell:hover:not(.has-ship):not(.state-miss):not(.state-hit):not(.state-sunk) {
     background: rgba(56, 189, 248, 0.14);
 }
 
-/* Naval Ships Visual System */
+/* Ship Cells on Grid (Identical to dock ship selector deck chips) */
 .cell.has-ship {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #1e40af 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    background: #38bdf8 !important;
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
     position: relative;
     z-index: 1;
 }
 
-/* Ship Deck Detail Marker (Rivet / Turret) */
-.cell.has-ship::after {
-    content: '';
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.45);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-    transition: transform 0.15s ease, background 0.15s ease;
-}
-
-/* Single Patrol Boat: rounded capsule */
-.cell.has-ship.ship-single {
-    border-radius: 9px;
-}
-
-/* Horizontal Ships */
-.cell.has-ship.ship-h.ship-bow {
-    border-radius: 12px 0 0 12px;
-}
-.cell.has-ship.ship-h.ship-mid {
-    border-radius: 0;
-}
-.cell.has-ship.ship-h.ship-stern {
-    border-radius: 0 7px 7px 0;
-}
-
-/* Vertical Ships */
-.cell.has-ship.ship-v.ship-bow {
-    border-radius: 12px 12px 0 0;
-}
-.cell.has-ship.ship-v.ship-mid {
-    border-radius: 0;
-}
-.cell.has-ship.ship-v.ship-stern {
-    border-radius: 0 0 7px 7px;
-}
-
 /* Hover over ship on placement screen to remove */
 #screen-placement .cell.has-ship:hover {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-}
-
-#screen-placement .cell.has-ship:hover::after {
-    background: #ffffff;
-    transform: scale(1.2);
+    background: #f43f5e !important;
+    box-shadow: 0 0 8px rgba(244, 63, 94, 0.5) !important;
 }
 
 /* Placement Preview */
 .cell.preview-valid {
-    background: rgba(56, 189, 248, 0.35) !important;
-    box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.3);
+    background: rgba(56, 189, 248, 0.4) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
 }
 
 .cell.preview-invalid {
-    background: rgba(244, 63, 94, 0.35) !important;
-    box-shadow: inset 0 0 8px rgba(244, 63, 94, 0.3);
-}
-
-.cell.preview-valid.preview-single,
-.cell.preview-invalid.preview-single {
-    border-radius: 9px;
-}
-
-.cell.preview-valid.preview-h.preview-bow,
-.cell.preview-invalid.preview-h.preview-bow {
-    border-radius: 12px 0 0 12px;
-}
-.cell.preview-valid.preview-h.preview-stern,
-.cell.preview-invalid.preview-h.preview-stern {
-    border-radius: 0 7px 7px 0;
-}
-
-.cell.preview-valid.preview-v.preview-bow,
-.cell.preview-invalid.preview-v.preview-bow {
-    border-radius: 12px 12px 0 0;
-}
-.cell.preview-valid.preview-v.preview-stern,
-.cell.preview-invalid.preview-v.preview-stern {
-    border-radius: 0 0 7px 7px;
+    background: rgba(244, 63, 94, 0.4) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(244, 63, 94, 0.25);
 }
 
 /* Hit & Miss */

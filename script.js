@@ -782,22 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const shipId = board.grid[idx];
             if (shipId) {
                 cell.classList.add('has-ship');
-                const ship = board.ships.find(s => s.id === shipId);
-                if (ship) {
-                    const partIdx = ship.cells.indexOf(idx);
-                    if (ship.size === 1) {
-                        cell.classList.add('ship-single');
-                    } else {
-                        cell.classList.add(ship.isHorizontal ? 'ship-h' : 'ship-v');
-                        if (partIdx === 0) {
-                            cell.classList.add('ship-bow');
-                        } else if (partIdx === ship.size - 1) {
-                            cell.classList.add('ship-stern');
-                        } else {
-                            cell.classList.add('ship-mid');
-                        }
-                    }
-                }
                 cell.title = 'Click to remove ship';
             } else {
                 cell.removeAttribute('title');
@@ -829,17 +813,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const cells = placementGridEl.querySelectorAll('.cell');
-        previewIndices.forEach((idx, pIdx) => {
+        previewIndices.forEach(idx => {
             if (cells[idx]) {
                 cells[idx].classList.add(isValid ? 'preview-valid' : 'preview-invalid');
-                if (size === 1) {
-                    cells[idx].classList.add('preview-single');
-                } else {
-                    cells[idx].classList.add(isHorizontalPlacement ? 'preview-h' : 'preview-v');
-                    if (pIdx === 0) cells[idx].classList.add('preview-bow');
-                    else if (pIdx === size - 1) cells[idx].classList.add('preview-stern');
-                    else cells[idx].classList.add('preview-mid');
-                }
             }
         });
     }
@@ -847,11 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearPlacementPreviews() {
         const cells = placementGridEl.querySelectorAll('.cell');
         cells.forEach(c => {
-            c.classList.remove(
-                'preview-valid', 'preview-invalid',
-                'preview-single', 'preview-h', 'preview-v',
-                'preview-bow', 'preview-mid', 'preview-stern'
-            );
+            c.classList.remove('preview-valid', 'preview-invalid');
         });
     }
 
@@ -1026,22 +998,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const shipId = myBoard.grid[idx];
             if (shipId !== null) {
                 cell.classList.add('has-ship');
-                const ship = myBoard.ships.find(s => s.id === shipId);
-                if (ship) {
-                    const partIdx = ship.cells.indexOf(idx);
-                    if (ship.size === 1) {
-                        cell.classList.add('ship-single');
-                    } else {
-                        cell.classList.add(ship.isHorizontal ? 'ship-h' : 'ship-v');
-                        if (partIdx === 0) {
-                            cell.classList.add('ship-bow');
-                        } else if (partIdx === ship.size - 1) {
-                            cell.classList.add('ship-stern');
-                        } else {
-                            cell.classList.add('ship-mid');
-                        }
-                    }
-                }
             }
             if (myBoard.shots[idx] === 'miss') {
                 cell.classList.add('state-miss');
