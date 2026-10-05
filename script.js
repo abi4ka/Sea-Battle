@@ -724,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const info = document.createElement('div');
             info.className = 'ship-count';
-            info.textContent = `${placedCount}/${def.count} ${def.name}`;
+            info.textContent = isCompleted ? '✓' : `×${remaining}`;
 
             item.appendChild(visual);
             item.appendChild(info);
@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const placedCount = board.ships.filter(s => s.type === shipDef.type).length;
         if (placedCount >= shipDef.count) {
-            showToast(`All ships of type "${shipDef.name}" are already deployed!`);
+            showToast('All ships of this type placed');
             return;
         }
 
@@ -844,11 +844,11 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlacementGrid();
             renderShipInventory();
             if (board.isFleetReady()) {
-                showToast('Fleet is fully deployed! Press "Battle!" to engage!', 'success');
+                showToast('Fleet ready', 'success');
             }
         } else {
             sound.play('miss');
-            showToast('Cannot deploy ship here (too close to another ship or out of bounds)', 'danger');
+            showToast('Invalid position', 'danger');
         }
     }
 
@@ -856,7 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleOrientation() {
         isHorizontalPlacement = !isHorizontalPlacement;
         dockOrientationLabel.textContent = isHorizontalPlacement ? 'Horizontal' : 'Vertical';
-        btnRotateShip.querySelector('#rotate-btn-text').textContent = isHorizontalPlacement ? 'Rotate (R)' : 'Rotate (R) [V]';
+        const rotateTextEl = btnRotateShip.querySelector('#rotate-btn-text');
+        if (rotateTextEl) {
+            rotateTextEl.textContent = isHorizontalPlacement ? 'Rotate' : 'Rotate (V)';
+        }
         sound.play('place');
     }
 
@@ -875,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sound.play('place');
         renderPlacementGrid();
         renderShipInventory();
-        showToast('Fleet deployed automatically!');
+        showToast('Random fleet placed');
     });
 
     btnClearPlacement.addEventListener('click', () => {
@@ -894,8 +897,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Send FLEET_READY over realtime channel
             sendOnlineData({ type: 'FLEET_READY' });
             btnReadyBattle.disabled = true;
-            btnReadyBattle.innerHTML = '<span class="loader-dots"><span>.</span><span>.</span><span>.</span></span> Waiting for opponent...';
-            showToast('Your fleet is ready! Waiting for opponent...');
+            btnReadyBattle.textContent = 'Waiting for opponent...';
+            showToast('Waiting for opponent...');
 
             if (onlineOpponentReady) {
                 if (myOnlineRole === 'host') {
@@ -938,9 +941,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (gameMode === 'online') {
             const isMyTurn = (myOnlineRole === 'host' && activePlayer === 1) || (myOnlineRole === 'joiner' && activePlayer === 2);
-            showToast(isMyTurn ? 'Battle started! Your first shot!' : 'Battle started! Opponent fires first!');
+            showToast(isMyTurn ? 'Your turn' : "Opponent's turn");
         } else {
-            showToast(`Battle started! ${activePlayer === 1 ? 'Your turn!' : "Opponent's turn"}`);
+            showToast(activePlayer === 1 ? 'Your turn' : "Opponent's turn");
         }
     }
 
@@ -1045,15 +1048,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isMyTurn) {
             turnDot.className = 'turn-pulse-dot';
-            turnTitle.textContent = 'Your Volley!';
-            turnSubtitle.textContent = 'Select coordinates on enemy radar';
-            turnTitle.style.color = 'var(--text-primary)';
+            turnTitle.textContent = 'Your Turn';
+            if (turnSubtitle) turnSubtitle.textContent = '';
         } else {
             turnDot.className = 'turn-pulse-dot enemy-turn';
-            turnTitle.textContent = (gameMode === 'ai') ? 'AI Thinking...' : "Opponent's Turn...";
-            turnSubtitle.textContent = 'Awaiting incoming volley...';
-            turnTitle.style.color = 'var(--color-hit)';
+            turnTitle.textContent = (gameMode === 'ai') ? 'AI Turn' : "Opponent's Turn";
+            if (turnSubtitle) turnSubtitle.textContent = '';
         }
+
+        if (enemyBattleGridEl) enemyBattleGridEl.classList.toggle('active-turn', isMyTurn);
+        if (myBattleGridEl) myBattleGridEl.classList.toggle('active-turn', !isMyTurn);
     }
 
     // ==========================================
@@ -1066,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameMode === 'online') {
             const isMyTurn = (myOnlineRole === 'host' && activePlayer === 1) || (myOnlineRole === 'joiner' && activePlayer === 2);
             if (!isMyTurn) {
-                showToast("It is opponent's turn!", 'danger');
+                showToast("Opponent's turn", 'danger');
                 return;
             }
         } else if (gameMode === 'ai' && activePlayer !== 1) {
@@ -1076,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const enemyBoard = player2Board;
 
         if (enemyBoard.shots[index] !== null) {
-            showToast('This cell has already been targeted!');
+            showToast('Already targeted');
             return;
         }
 
@@ -1106,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (shotResult.result === 'miss') {
             sound.play('miss');
-            showToast('Miss!');
+            showToast('Miss');
             // Turn passes to opponent
             activePlayer = activePlayer === 1 ? 2 : 1;
             updateBattleUI();
@@ -1118,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (shotResult.result === 'hit') {
             sound.play('hit');
             if (isFriendlyShooter) battleStats.hits++;
-            showToast('Hit! Take another shot!', 'success');
+            showToast('Hit!', 'success');
             // Shooter keeps the turn!
             updateBattleUI();
 
@@ -1129,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (shotResult.result === 'sunk') {
             sound.play('sunk');
             if (isFriendlyShooter) battleStats.hits++;
-            showToast(`Enemy ship "${shotResult.ship.name}" sunk! Take another shot!`, 'success');
+            showToast('Ship sunk!', 'success');
 
             if (shotResult.allSunk) {
                 // Game Over!
@@ -1162,19 +1166,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.result === 'miss') {
                 sound.play('miss');
-                showToast('Computer missed!');
+                showToast('AI miss');
                 activePlayer = 1;
                 isShootingAllowed = true;
                 updateBattleUI();
             } else if (result.result === 'hit') {
                 sound.play('hit');
-                showToast('Computer hit your ship!', 'danger');
+                showToast('AI hit', 'danger');
                 aiEngine.registerShotResult(aiShotIndex, 'hit');
                 updateBattleUI();
                 triggerAiTurn(750);
             } else if (result.result === 'sunk') {
                 sound.play('sunk');
-                showToast(`Computer sank your ${result.ship.name}!`, 'danger');
+                showToast('Ship lost', 'danger');
                 aiEngine.registerShotResult(aiShotIndex, 'sunk', result.halo);
 
                 if (result.allSunk) {
@@ -1196,14 +1200,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isWinner) {
             sound.play('win');
-            modalGameOverTitle.textContent = 'VICTORY!';
+            modalGameOverTitle.textContent = 'Victory';
             modalGameOverTitle.className = 'modal-title victory';
-            modalGameOverDesc.textContent = 'You sank the entire enemy fleet!';
+            modalGameOverDesc.textContent = 'Enemy fleet destroyed';
         } else {
             sound.play('lose');
-            modalGameOverTitle.textContent = 'DEFEAT';
+            modalGameOverTitle.textContent = 'Defeat';
             modalGameOverTitle.className = 'modal-title defeat';
-            modalGameOverDesc.textContent = 'Your armada was destroyed...';
+            modalGameOverDesc.textContent = 'Your fleet was sunk';
         }
 
         const accuracy = battleStats.shots > 0 ? Math.round((battleStats.hits / battleStats.shots) * 100) : 0;
@@ -1382,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (data.type) {
             case 'JOINER_HELLO':
                 if (myOnlineRole === 'host') {
-                    showToast('Opponent connected to the room!', 'success');
+                    showToast('Opponent connected', 'success');
                     sendOnlineData({ type: 'LOBBY_READY' });
                     startOnlinePlacement();
                 }
@@ -1390,13 +1394,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             case 'LOBBY_READY':
                 clearJoinTimeout();
-                showToast('Connected to room!', 'success');
+                showToast('Connected', 'success');
                 startOnlinePlacement();
                 break;
 
             case 'FLEET_READY':
                 onlineOpponentReady = true;
-                showToast('Opponent deployed their fleet and is ready!');
+                showToast('Opponent ready');
                 if (player1Board.isFleetReady() && myOnlineRole === 'host') {
                     const firstTurn = Math.random() < 0.5 ? 'host' : 'joiner';
                     sendOnlineData({ type: 'START_BATTLE', firstTurn });
@@ -1428,19 +1432,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (result.result === 'miss') {
                     sound.play('miss');
-                    showToast('Opponent missed!');
+                    showToast('Opponent missed');
                     // Turn passes to us
                     activePlayer = (myOnlineRole === 'host') ? 1 : 2;
                     isShootingAllowed = true;
                     updateBattleUI();
                 } else if (result.result === 'hit') {
                     sound.play('hit');
-                    showToast('Opponent hit your ship!', 'danger');
+                    showToast('Opponent hit', 'danger');
                     // Opponent keeps turn
                     updateBattleUI();
                 } else if (result.result === 'sunk') {
                     sound.play('sunk');
-                    showToast(`Opponent sank your ${result.ship.name}!`, 'danger');
+                    showToast('Ship lost', 'danger');
                     if (result.allSunk) {
                         handleGameOver(false);
                         return;
@@ -1460,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     sound.play('miss');
                     player2Board.shots[shotIdx] = 'miss';
                     player2Board.lastShotIndex = shotIdx;
-                    showToast('Miss!');
+                    showToast('Miss');
                     // Turn passes to opponent
                     activePlayer = (myOnlineRole === 'host') ? 2 : 1;
                     updateBattleUI();
@@ -1469,7 +1473,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     battleStats.hits++;
                     player2Board.shots[shotIdx] = 'hit';
                     player2Board.lastShotIndex = shotIdx;
-                    showToast('Hit! Take another shot!', 'success');
+                    showToast('Hit!', 'success');
                     updateBattleUI();
                 } else if (data.result === 'sunk') {
                     sound.play('sunk');
@@ -1486,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
 
-                    showToast(`Enemy ship "${data.shipName || ''}" sunk! Take another shot!`, 'success');
+                    showToast('Ship sunk!', 'success');
 
                     if (data.allSunk) {
                         handleGameOver(true);
@@ -1510,12 +1514,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     startOnlinePlacement();
                 } else {
                     btnGameOverRematchText.textContent = 'Accept Rematch';
-                    showToast('Opponent requested a rematch!');
+                    showToast('Opponent requested rematch');
                 }
                 break;
 
             case 'SURRENDER':
-                showToast('Opponent surrendered!', 'success');
+                showToast('Opponent surrendered', 'success');
                 handleGameOver(true);
                 break;
         }
@@ -1528,7 +1532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rematchRequested = { me: false, opponent: false };
         placementPlayerTag.textContent = myOnlineRole === 'host' ? 'HOST' : 'GUEST';
         btnReadyBattle.disabled = true;
-        btnReadyBattle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Battle!';
+        btnReadyBattle.textContent = 'Start Game';
         initPlacementGrid();
         showScreen(screenPlacement);
     }
@@ -1562,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
                 showScreen(screenWaiting);
-                showToast('Room created! Waiting for player to connect...');
+                showToast('Room created');
             }
         });
     });
@@ -1571,7 +1575,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnJoinRoom.addEventListener('click', async () => {
         const code = inputRoomCode.value.trim().toUpperCase();
         if (code.length !== 6) {
-            showToast('Code must be 6 characters', 'danger');
+            showToast('Enter 6-char code', 'danger');
             return;
         }
 
@@ -1606,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sendOnlineData({ type: 'JOINER_HELLO' });
 
                 joinTimeout = setTimeout(() => {
-                    showToast('Host not responding. Please check room code.', 'danger');
+                    showToast('Host not responding', 'danger');
                     leaveToMainMenu();
                 }, 10000);
             }
@@ -1628,7 +1632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyCode.addEventListener('click', () => {
         if (roomCode) {
             navigator.clipboard.writeText(roomCode);
-            showToast('Room code copied!');
+            showToast('Code copied');
         }
     });
 
@@ -1636,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roomCode) {
             const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
             navigator.clipboard.writeText(url);
-            showToast('Direct link copied!');
+            showToast('Link copied');
         }
     });
 
@@ -1651,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyGameCode.addEventListener('click', () => {
         if (roomCode) {
             navigator.clipboard.writeText(roomCode);
-            showToast('Room code copied!');
+            showToast('Code copied');
         }
     });
 
@@ -1659,7 +1663,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roomCode) {
             const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
             navigator.clipboard.writeText(url);
-            showToast('Game link copied!');
+            showToast('Link copied');
         }
     });
 
