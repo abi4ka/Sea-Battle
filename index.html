@@ -217,7 +217,7 @@
                 <!-- Mobile Tabs -->
                 <div class="mobile-board-tabs" id="mobile-tabs">
                     <button class="mobile-tab-btn" id="tab-my-fleet" data-target="my-fleet">
-                        Your Fleet
+                        Your Fleet <span class="tab-badge hidden" id="my-fleet-tab-badge"></span>
                     </button>
                     <button class="mobile-tab-btn active" id="tab-enemy-radar" data-target="enemy-radar">
                         Opponent <span class="tab-badge hidden" id="enemy-tab-badge"></span>
@@ -227,7 +227,7 @@
                 <!-- Dual Grids -->
                 <div class="boards-container">
                     <!-- Player Fleet -->
-                    <div class="board-wrapper" id="wrapper-my-fleet">
+                    <div class="board-wrapper mobile-hidden" id="wrapper-my-fleet">
                         <div class="board-meta">
                             <span class="board-name">Your Fleet</span>
                             <div class="fleet-tracker" id="my-fleet-tracker"></div>
@@ -292,12 +292,26 @@
                     <button class="emoji-btn" data-emoji="👏">👏</button>
                 </div>
 
-                <!-- Hidden elements for host code peeker to prevent JS null errors -->
-                <div id="host-invite-bar" class="hidden">
-                    <input type="text" id="game-room-code-input" readonly value="" />
-                    <button id="btn-toggle-peek" type="button"><svg id="icon-eye-closed"></svg><svg id="icon-eye-open"></svg></button>
-                    <button id="btn-copy-game-code" type="button"></button>
-                    <button id="btn-share-online" type="button"></button>
+                <!-- Host in-game room invite bar -->
+                <div id="host-invite-bar" class="host-invite-bar hidden">
+                    <div class="host-code-box">
+                        <span class="host-code-label">Room:</span>
+                        <input type="text" id="game-room-code-input" readonly value="******" />
+                        <button id="btn-toggle-peek" class="btn-icon-sm" type="button" title="Show/Hide room code">
+                            <svg id="icon-eye-closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            <svg id="icon-eye-open" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <div class="host-invite-actions">
+                        <button id="btn-copy-game-code" class="btn btn-secondary btn-sm" type="button" title="Copy room code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            <span>Copy Code</span>
+                        </button>
+                        <button id="btn-share-online" class="btn btn-secondary btn-sm" type="button" title="Copy room invite link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            <span>Share Link</span>
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>

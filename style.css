@@ -59,6 +59,10 @@
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(1, 4, 9, 0.4);
     --shadow-modal: 0 16px 36px rgba(1, 4, 9, 0.8);
     --transition: all 0.14s ease-in-out;
+
+    /* Grid & Coordinates Alignment */
+    --grid-cell-size: 32px;
+    --coord-size: 22px;
 }
 
 *, *::before, *::after {
@@ -660,13 +664,14 @@ body {
 
 .grid-header-row {
     display: grid;
-    grid-template-columns: 22px repeat(10, 32px);
+    grid-template-columns: calc(var(--coord-size) + 3px) repeat(10, var(--grid-cell-size));
+    column-gap: 1px;
     margin-bottom: 3px;
 }
 
 .coord-corner {
-    width: 22px;
-    height: 22px;
+    width: calc(var(--coord-size) + 3px);
+    height: var(--coord-size);
 }
 
 .coord-col {
@@ -677,6 +682,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    height: var(--coord-size);
     user-select: none;
 }
 
@@ -685,9 +691,11 @@ body {
 }
 
 .grid-num-col {
-    display: flex;
-    flex-direction: column;
-    width: 22px;
+    display: grid;
+    grid-template-rows: repeat(10, var(--grid-cell-size));
+    row-gap: 1px;
+    padding-top: 1px;
+    width: var(--coord-size);
     margin-right: 3px;
 }
 
@@ -699,15 +707,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 32px;
+    height: var(--grid-cell-size);
     user-select: none;
 }
 
-/* 10x10 Grid Cells (32px Desktop) */
+/* 10x10 Grid Cells */
 .battle-grid {
     display: grid;
-    grid-template-columns: repeat(10, 32px);
-    grid-template-rows: repeat(10, 32px);
+    grid-template-columns: repeat(10, var(--grid-cell-size));
+    grid-template-rows: repeat(10, var(--grid-cell-size));
     gap: 1px;
     background: rgba(255, 255, 255, 0.07);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -808,6 +816,14 @@ body {
 
 .cell.state-sunk::before { transform: rotate(45deg); }
 .cell.state-sunk::after { transform: rotate(-45deg); }
+
+/* Last Shot Highlight Indicator */
+.cell.last-shot-highlight {
+    outline: 2px solid var(--color-accent-fg) !important;
+    outline-offset: -2px;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.7) !important;
+    z-index: 2;
+}
 
 /* Ship Dock (Placement Side Wing) */
 .ship-dock {
@@ -1194,6 +1210,80 @@ body {
     border-color: var(--color-btn-hover-border);
 }
 
+/* Host In-Game Room Invite Bar */
+.host-invite-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    background: var(--color-canvas-subtle);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    margin: 12px auto 0;
+    max-width: 500px;
+    box-shadow: var(--shadow-card);
+}
+
+.host-code-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-canvas-inset);
+    border: 1px solid var(--color-border-muted);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+}
+
+.host-code-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#game-room-code-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--color-accent-fg);
+    width: 68px;
+    text-align: center;
+    letter-spacing: 0.12em;
+}
+
+.btn-icon-sm {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-fg-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 0;
+}
+
+.btn-icon-sm:hover {
+    color: var(--color-fg-default);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.host-invite-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* Mobile Tabs */
 .mobile-board-tabs {
     display: none;
@@ -1215,11 +1305,33 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .mobile-tab-btn.active {
     background: var(--color-btn-bg);
     color: var(--color-fg-default);
+}
+
+.tab-badge {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-left: 2px;
+}
+
+#enemy-tab-badge {
+    background: var(--color-accent-fg);
+    box-shadow: 0 0 6px var(--color-accent-fg);
+}
+
+#my-fleet-tab-badge {
+    background: var(--color-danger-fg);
+    box-shadow: 0 0 6px var(--color-danger-fg);
 }
 
 /* ==========================================================================
@@ -1354,6 +1466,11 @@ body {
    Responsive
    ========================================================================== */
 @media (max-width: 780px) {
+    :root {
+        --grid-cell-size: 27px;
+        --coord-size: 22px;
+    }
+
     .boards-container {
         flex-direction: column;
         align-items: center;
@@ -1366,19 +1483,6 @@ body {
 
     .board-wrapper.mobile-hidden {
         display: none !important;
-    }
-
-    .battle-grid {
-        grid-template-columns: repeat(10, 27px);
-        grid-template-rows: repeat(10, 27px);
-    }
-
-    .grid-header-row {
-        grid-template-columns: 22px repeat(10, 27px);
-    }
-
-    .coord-row {
-        height: 27px;
     }
 
     .placement-layout {
@@ -1394,21 +1498,9 @@ body {
 }
 
 @media (max-width: 380px) {
-    .battle-grid {
-        grid-template-columns: repeat(10, 24px);
-        grid-template-rows: repeat(10, 24px);
-    }
-
-    .grid-header-row {
-        grid-template-columns: 18px repeat(10, 24px);
-    }
-
-    .grid-num-col {
-        width: 18px;
-    }
-
-    .coord-row {
-        height: 24px;
+    :root {
+        --grid-cell-size: 24px;
+        --coord-size: 18px;
     }
 
     .coord-col, .coord-row {

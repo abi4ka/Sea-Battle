@@ -536,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapperMyFleet = document.getElementById('wrapper-my-fleet');
     const wrapperEnemyRadar = document.getElementById('wrapper-enemy-radar');
     const enemyTabBadge = document.getElementById('enemy-tab-badge');
+    const myFleetTabBadge = document.getElementById('my-fleet-tab-badge');
 
     // Online reactions & code peeker
     const reactionsBar = document.getElementById('reactions-bar');
@@ -985,6 +986,14 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBattleUI();
         showScreen(screenBattle);
 
+        // Reset mobile tabs to default view (Opponent Radar)
+        tabEnemyRadar.classList.add('active');
+        tabMyFleet.classList.remove('active');
+        wrapperEnemyRadar.classList.remove('mobile-hidden');
+        wrapperMyFleet.classList.add('mobile-hidden');
+        if (enemyTabBadge) enemyTabBadge.classList.add('hidden');
+        if (myFleetTabBadge) myFleetTabBadge.classList.add('hidden');
+
         if (gameMode === 'online') {
             const isMyTurn = (myOnlineRole === 'host' && activePlayer === 1) || (myOnlineRole === 'joiner' && activePlayer === 2);
             showToast(isMyTurn ? 'Your turn' : "Opponent's turn");
@@ -1109,6 +1118,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (enemyBattleGridEl) enemyBattleGridEl.classList.toggle('active-turn', isMyTurn);
         if (myBattleGridEl) myBattleGridEl.classList.toggle('active-turn', !isMyTurn);
+
+        if (isMyTurn && wrapperEnemyRadar && wrapperEnemyRadar.classList.contains('mobile-hidden') && enemyTabBadge) {
+            enemyTabBadge.classList.remove('hidden');
+        }
     }
 
     // ==========================================
@@ -1252,6 +1265,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderBattleBoards();
 
+            if (wrapperMyFleet && wrapperMyFleet.classList.contains('mobile-hidden') && myFleetTabBadge) {
+                myFleetTabBadge.classList.remove('hidden');
+            }
+
             if (result.result === 'miss') {
                 sound.play('miss');
                 activePlayer = 1;
@@ -1357,6 +1374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabEnemyRadar.classList.remove('active');
         wrapperMyFleet.classList.remove('mobile-hidden');
         wrapperEnemyRadar.classList.add('mobile-hidden');
+        if (myFleetTabBadge) myFleetTabBadge.classList.add('hidden');
     });
 
     tabEnemyRadar.addEventListener('click', () => {
@@ -1593,6 +1611,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 renderBattleBoards();
+
+                if (wrapperMyFleet && wrapperMyFleet.classList.contains('mobile-hidden') && myFleetTabBadge) {
+                    myFleetTabBadge.classList.remove('hidden');
+                }
 
                 const shipDef = result.ship ? FLEET_DEFINITIONS.find(d => d.type === result.ship.type) : null;
                 const shipName = result.ship ? (result.ship.name || (shipDef ? shipDef.name : result.ship.type)) : null;
