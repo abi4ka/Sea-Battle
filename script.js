@@ -947,6 +947,20 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 hostInviteBar.classList.add('hidden');
             }
+
+            // Initialize opponent fleet placeholders for tracker
+            player2Board.ships = [];
+            FLEET_DEFINITIONS.forEach(def => {
+                for (let i = 0; i < def.count; i++) {
+                    player2Board.ships.push({
+                        type: def.type,
+                        name: def.name,
+                        size: def.size,
+                        isSunk: false
+                    });
+                }
+            });
+            player2Board.ships.sort((a, b) => b.size - a.size);
         }
 
         initBattleBoards();
@@ -1031,9 +1045,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFleetTrackers(myBoard, enemyBoard) {
         // Tracker for friendly fleet
         myFleetTracker.innerHTML = '';
-        myBoard.ships.forEach(ship => {
+        const myShipsSorted = [...myBoard.ships].sort((a, b) => (b.size - a.size) || (a.isSunk ? 1 : -1));
+        myShipsSorted.forEach(ship => {
             const shipMini = document.createElement('div');
             shipMini.className = `mini-ship ${ship.isSunk ? 'sunk' : ''}`;
+            shipMini.title = `${ship.name || 'Ship'} (${ship.size} decks)${ship.isSunk ? ' - Sunk' : ''}`;
             for (let i = 0; i < ship.size; i++) {
                 const deck = document.createElement('div');
                 deck.className = 'mini-deck';
@@ -1044,9 +1060,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Tracker for enemy fleet
         enemyFleetTracker.innerHTML = '';
-        enemyBoard.ships.forEach(ship => {
+        const enemyShipsSorted = [...enemyBoard.ships].sort((a, b) => (b.size - a.size) || (a.isSunk ? 1 : -1));
+        enemyShipsSorted.forEach(ship => {
             const shipMini = document.createElement('div');
             shipMini.className = `mini-ship ${ship.isSunk ? 'sunk' : ''}`;
+            shipMini.title = `${ship.name || 'Ship'} (${ship.size} decks)${ship.isSunk ? ' - Sunk' : ''}`;
             for (let i = 0; i < ship.size; i++) {
                 const deck = document.createElement('div');
                 deck.className = 'mini-deck';
@@ -1517,6 +1535,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 player2Board.shots[hIdx] = 'miss';
                             }
                         });
+                    }
+
+                    // Mark sunken ship in enemy fleet tracker
+                    const targetSize = data.shipSize || (data.shipCells ? data.shipCells.length : 0);
+                    const sunkShipPlaceholder = player2Board.ships.find(s => !s.isSunk && (s.type === data.shipType || s.size === targetSize));
+                    if (sunkShipPlaceholder) {
+                        sunkShipPlaceholder.isSunk = true;
                     }
 
                     if (data.shipName) {
