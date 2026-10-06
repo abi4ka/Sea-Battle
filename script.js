@@ -579,6 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isCodeRevealed = false;
     let joinTimeout = null;
     let rematchRequested = { me: false, opponent: false };
+    let isDisconnectHandled = false;
 
     // ==========================================
     // SCREEN NAVIGATION & TOASTS
@@ -1231,19 +1232,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // GAME OVER & STATS
     // ==========================================
-    function handleGameOver(isWinner) {
+    function handleGameOver(isWinner, customTitle = null, customDesc = null) {
         isShootingAllowed = false;
 
         if (isWinner) {
             sound.play('win');
-            modalGameOverTitle.textContent = 'Victory';
+            modalGameOverTitle.textContent = customTitle || 'Victory';
             modalGameOverTitle.className = 'modal-title victory';
-            modalGameOverDesc.textContent = 'Enemy fleet destroyed';
+            modalGameOverDesc.textContent = customDesc || 'Enemy fleet destroyed';
         } else {
             sound.play('lose');
-            modalGameOverTitle.textContent = 'Defeat';
+            modalGameOverTitle.textContent = customTitle || 'Defeat';
             modalGameOverTitle.className = 'modal-title defeat';
-            modalGameOverDesc.textContent = 'Your fleet was sunk';
+            modalGameOverDesc.textContent = customDesc || 'Your fleet was sunk';
         }
 
         const accuracy = battleStats.shots > 0 ? Math.round((battleStats.hits / battleStats.shots) * 100) : 0;
@@ -1331,7 +1332,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     backToMenuBtns.forEach(btn => {
-        btn.addEventListener('click', leaveToMainMenu);
+        btn.addEventListener('click', () => {
+            if (screenBattle.classList.contains('active')) {
+                if (confirm('Leave current battle? This will forfeit the match.')) {
+                    if (gameMode === 'online') {
+                        sendOnlineData({ type: 'SURRENDER' });
+                    }
+                    leaveToMainMenu();
+                }
+            } else if (screenPlacement.classList.contains('active') && gameMode === 'online') {
+                if (confirm('Leave online room?')) {
+                    leaveToMainMenu();
+                }
+            } else {
+                leaveToMainMenu();
+            }
+        });
     });
 
     async function leaveToMainMenu() {
@@ -1342,6 +1358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         player2Board.clear();
         rematchRequested = { me: false, opponent: false };
         onlineOpponentReady = false;
+        isDisconnectHandled = false;
         hostInviteBar.classList.add('hidden');
         showScreen(screenMenu);
     }
@@ -1394,6 +1411,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function leaveSupabaseRoom() {
         if (gameChannel) {
             try {
+                await sendOnlineData({ type: 'PLAYER_LEFT' });
+                await gameChannel.untrack();
                 await gameChannel.unsubscribe();
             } catch (e) {}
             gameChannel = null;
@@ -1401,17 +1420,20 @@ document.addEventListener('DOMContentLoaded', () => {
         roomCode = null;
         myOnlineRole = null;
         isOnlineConnected = false;
+        isDisconnectHandled = false;
     }
 
-    function sendOnlineData(payload) {
+    async function sendOnlineData(payload) {
         if (gameChannel) {
-            gameChannel.send({
-                type: 'broadcast',
-                event: 'game-event',
-                payload
-            }).catch(err => {
+            try {
+                await gameChannel.send({
+                    type: 'broadcast',
+                    event: 'game-event',
+                    payload
+                });
+            } catch (err) {
                 console.error('Realtime broadcast error:', err);
-            });
+            }
         }
     }
 
@@ -1578,6 +1600,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Opponent surrendered', 'success');
                 handleGameOver(true);
                 break;
+
+            case 'PLAYER_LEFT':
+                handleOpponentDisconnected('Opponent left the game');
+                break;
+        }
+    }
+
+    function handleOpponentDisconnected(reason = 'Opponent disconnected') {
+        if (gameMode !== 'online' || !isOnlineConnected || isDisconnectHandled) return;
+        isDisconnectHandled = true;
+
+        showToast(reason, 'danger');
+
+        // If host waiting in lobby before opponent ever joined
+        if (screenWaiting.classList.contains('active')) {
+            return;
+        }
+
+        // If currently in battle arena
+        if (screenBattle.classList.contains('active')) {
+            handleGameOver(true, 'Victory', reason);
+            btnGameOverRematch.classList.add('hidden');
+            return;
+        }
+
+        // If game over modal is already open
+        if (modalGameOver.classList.contains('active')) {
+            btnGameOverRematch.classList.add('hidden');
+            return;
+        }
+
+        // If in placement screen
+        if (screenPlacement.classList.contains('active')) {
+            setTimeout(() => {
+                leaveToMainMenu();
+            }, 1500);
+            return;
         }
     }
 
@@ -1605,6 +1664,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayRoomCode.textContent = roomCode;
         gameRoomCodeInput.value = '******';
         isCodeRevealed = false;
+        isDisconnectHandled = false;
 
         const channelName = `sea-battle-room-${roomCode}`;
         gameChannel = supabase.channel(channelName, {
@@ -1618,11 +1678,24 @@ document.addEventListener('DOMContentLoaded', () => {
             handleOnlineData(payload);
         });
 
-        gameChannel.subscribe((status) => {
+        gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            if (!leftPresences || !Array.isArray(leftPresences)) return;
+            const opponentLeft = leftPresences.some(p => p.role && p.role !== 'host');
+            if (opponentLeft) {
+                handleOpponentDisconnected('Opponent disconnected');
+            }
+        });
+
+        gameChannel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
+                await gameChannel.track({ role: 'host' });
                 showScreen(screenWaiting);
                 showToast('Room created');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                networkStatusBadge.classList.remove('connected');
+                networkStatusText.textContent = 'Connection Error';
+                showToast('Connection error', 'danger');
             }
         });
     });
@@ -1646,6 +1719,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         roomCode = code;
         myOnlineRole = 'joiner';
+        isDisconnectHandled = false;
         const channelName = `sea-battle-room-${roomCode}`;
 
         gameChannel = supabase.channel(channelName, {
@@ -1659,9 +1733,18 @@ document.addEventListener('DOMContentLoaded', () => {
             handleOnlineData(payload);
         });
 
-        gameChannel.subscribe((status) => {
+        gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            if (!leftPresences || !Array.isArray(leftPresences)) return;
+            const opponentLeft = leftPresences.some(p => p.role && p.role !== 'joiner');
+            if (opponentLeft) {
+                handleOpponentDisconnected('Opponent disconnected');
+            }
+        });
+
+        gameChannel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
+                await gameChannel.track({ role: 'joiner' });
                 // Alert host
                 sendOnlineData({ type: 'JOINER_HELLO' });
 
@@ -1669,6 +1752,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('Host not responding', 'danger');
                     leaveToMainMenu();
                 }, 10000);
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                networkStatusBadge.classList.remove('connected');
+                networkStatusText.textContent = 'Connection Error';
+                showToast('Connection error', 'danger');
             }
         });
     }
@@ -1748,6 +1835,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
     }
+
+    // Notify opponent if tab or window is closed during online game
+    window.addEventListener('beforeunload', () => {
+        if (gameMode === 'online' && gameChannel) {
+            sendOnlineData({ type: 'PLAYER_LEFT' });
+        }
+    });
 
     // Check for direct join on launch
     const hasDirectJoin = checkUrlRoomParam();
