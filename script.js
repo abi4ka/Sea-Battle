@@ -580,6 +580,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let joinTimeout = null;
     let rematchRequested = { me: false, opponent: false };
     let isDisconnectHandled = false;
+    let pendingShot = null;
+    let shotTimeoutId = null;
+
+    function clearShotTimeout() {
+        if (shotTimeoutId) {
+            clearTimeout(shotTimeoutId);
+            shotTimeoutId = null;
+        }
+        pendingShot = null;
+    }
 
     // ==========================================
     // SCREEN NAVIGATION & TOASTS
@@ -1122,18 +1132,53 @@ document.addEventListener('DOMContentLoaded', () => {
         battleStats.shots++;
 
         if (gameMode === 'online') {
-            // Send shot to opponent
+            // Send shot to opponent with timeout & retry tracking
             isShootingAllowed = false;
-            sendOnlineData({
-                type: 'FIRE_SHOT',
+            pendingShot = {
                 index: index,
-                shooterRole: myOnlineRole
-            });
+                shotId: `${myOnlineRole}-${Date.now()}-${index}`,
+                retryCount: 0
+            };
+
+            dispatchOnlineShot();
             return;
         }
 
         // AI shot evaluation
         processShotLocally(enemyBoard, index, true);
+    }
+
+    function dispatchOnlineShot() {
+        if (!pendingShot || gameMode !== 'online') return;
+
+        if (shotTimeoutId) {
+            clearTimeout(shotTimeoutId);
+            shotTimeoutId = null;
+        }
+
+        sendOnlineData({
+            type: 'FIRE_SHOT',
+            index: pendingShot.index,
+            shotId: pendingShot.shotId,
+            retryCount: pendingShot.retryCount,
+            shooterRole: myOnlineRole
+        });
+
+        shotTimeoutId = setTimeout(() => {
+            if (!pendingShot || gameMode !== 'online') return;
+
+            if (pendingShot.retryCount < 2) {
+                pendingShot.retryCount++;
+                showToast('Retrying shot...', 'normal');
+                dispatchOnlineShot();
+            } else {
+                // Timeout exhausted - release local lock so player isn't stuck forever
+                clearShotTimeout();
+                isShootingAllowed = true;
+                showToast('Shot timed out. Please try again.', 'danger');
+                updateBattleUI();
+            }
+        }, 3500);
     }
 
     function processShotLocally(targetBoard, index, isFriendlyShooter) {
@@ -1233,6 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // GAME OVER & STATS
     // ==========================================
     function handleGameOver(isWinner, customTitle = null, customDesc = null) {
+        clearShotTimeout();
         isShootingAllowed = false;
 
         if (isWinner) {
@@ -1352,6 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function leaveToMainMenu() {
         clearJoinTimeout();
+        clearShotTimeout();
         clearUrlRoomParam();
         await leaveSupabaseRoom();
         player1Board.clear();
@@ -1472,8 +1519,32 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'FIRE_SHOT': {
                 // Incoming shot on our fleet!
                 const incomingIndex = data.index;
-                const result = player1Board.receiveShot(incomingIndex);
-                if (!result) return;
+                let result = player1Board.receiveShot(incomingIndex);
+
+                // If already shot previously (idempotent retry from opponent due to dropped packet)
+                if (!result) {
+                    const existingShotStatus = player1Board.shots[incomingIndex];
+                    if (existingShotStatus !== null) {
+                        const existingShipId = player1Board.grid[incomingIndex];
+                        const existingShip = existingShipId ? player1Board.ships.find(s => s.id === existingShipId) : null;
+                        const isSunk = existingShip ? existingShip.isSunk : false;
+                        const halo = (isSunk && existingShip) ? player1Board.getShipSurroundingHalo(existingShip) : [];
+
+                        sendOnlineData({
+                            type: 'SHOT_RESPONSE',
+                            index: incomingIndex,
+                            shotId: data.shotId || null,
+                            result: isSunk ? 'sunk' : existingShotStatus,
+                            shipName: existingShip ? existingShip.name : null,
+                            shipCells: existingShip ? existingShip.cells : [],
+                            shipType: existingShip ? existingShip.type : null,
+                            shipSize: existingShip ? existingShip.size : 0,
+                            halo: halo,
+                            allSunk: player1Board.ships.every(s => s.isSunk)
+                        });
+                    }
+                    return;
+                }
 
                 renderBattleBoards();
 
@@ -1484,6 +1555,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sendOnlineData({
                     type: 'SHOT_RESPONSE',
                     index: incomingIndex,
+                    shotId: data.shotId || null,
                     result: result.result,
                     shipName: shipName,
                     shipCells: result.ship ? result.ship.cells : [],
@@ -1518,7 +1590,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             case 'SHOT_RESPONSE': {
-                // Opponent evaluated our shot!
+                // Opponent evaluated our shot! Clear pending shot timeout
+                clearShotTimeout();
                 isShootingAllowed = true;
                 const shotIdx = data.index;
 
@@ -1641,6 +1714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startOnlinePlacement() {
+        clearShotTimeout();
         player1Board.clear();
         player2Board.clear();
         onlineOpponentReady = false;
