@@ -561,6 +561,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseRules = document.getElementById('btn-close-rules');
     const btnRulesToggle = document.getElementById('btn-rules-toggle');
 
+    const modalConfirm = document.getElementById('modal-confirm');
+    const modalConfirmTitle = document.getElementById('modal-confirm-title');
+    const modalConfirmDesc = document.getElementById('modal-confirm-desc');
+    const btnConfirmAccept = document.getElementById('btn-confirm-accept');
+    const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
+
     // Header buttons
     const btnSoundToggle = document.getElementById('btn-sound-toggle');
     const soundIconOn = document.getElementById('sound-icon-on');
@@ -1430,13 +1436,73 @@ document.addEventListener('DOMContentLoaded', () => {
         leaveToMainMenu();
     });
 
-    btnSurrender.addEventListener('click', () => {
-        if (confirm('Are you sure you want to surrender?')) {
-            if (gameMode === 'online') {
-                sendOnlineData({ type: 'SURRENDER' });
+    function showConfirmModal({ title, desc, confirmText = 'Confirm', isDanger = true, onConfirm }) {
+        if (!modalConfirm) {
+            if (confirm(desc)) {
+                if (onConfirm) onConfirm();
             }
-            handleGameOver(false);
+            return;
         }
+
+        modalConfirmTitle.textContent = title;
+        modalConfirmDesc.textContent = desc;
+        btnConfirmAccept.textContent = confirmText;
+        btnConfirmAccept.className = isDanger ? 'btn btn-danger btn-full' : 'btn btn-primary btn-full';
+
+        const handleAccept = () => {
+            cleanup();
+            if (onConfirm) onConfirm();
+        };
+
+        const handleCancel = () => {
+            cleanup();
+        };
+
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+            }
+        };
+
+        const handleOverlayClick = (e) => {
+            if (e.target === modalConfirm) {
+                cleanup();
+            }
+        };
+
+        function cleanup() {
+            modalConfirm.classList.remove('active');
+            btnConfirmAccept.removeEventListener('click', handleAccept);
+            btnConfirmCancel.removeEventListener('click', handleCancel);
+            modalConfirm.removeEventListener('click', handleOverlayClick);
+            document.removeEventListener('keydown', handleKeydown);
+        }
+
+        btnConfirmAccept.addEventListener('click', handleAccept);
+        btnConfirmCancel.addEventListener('click', handleCancel);
+        modalConfirm.addEventListener('click', handleOverlayClick);
+        document.addEventListener('keydown', handleKeydown);
+
+        modalConfirm.classList.add('active');
+    }
+
+    btnSurrender.addEventListener('click', () => {
+        const desc = (gameMode === 'online')
+            ? 'Are you sure you want to surrender? Your opponent will be awarded victory.'
+            : 'Are you sure you want to surrender this battle?';
+
+        showConfirmModal({
+            title: 'Surrender Battle?',
+            desc: desc,
+            confirmText: 'Surrender',
+            isDanger: true,
+            onConfirm: () => {
+                if (gameMode === 'online') {
+                    sendOnlineData({ type: 'SURRENDER' });
+                }
+                handleGameOver(false);
+            }
+        });
     });
 
     // ==========================================
@@ -1478,16 +1544,32 @@ document.addEventListener('DOMContentLoaded', () => {
     backToMenuBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             if (screenBattle.classList.contains('active')) {
-                if (confirm('Leave current battle? This will forfeit the match.')) {
-                    if (gameMode === 'online') {
-                        sendOnlineData({ type: 'SURRENDER' });
+                const desc = (gameMode === 'online')
+                    ? 'Leaving this battle will forfeit the match to your opponent.'
+                    : 'Are you sure you want to abandon the current battle?';
+
+                showConfirmModal({
+                    title: 'Leave Battle?',
+                    desc: desc,
+                    confirmText: 'Leave Match',
+                    isDanger: true,
+                    onConfirm: () => {
+                        if (gameMode === 'online') {
+                            sendOnlineData({ type: 'SURRENDER' });
+                        }
+                        leaveToMainMenu();
                     }
-                    leaveToMainMenu();
-                }
+                });
             } else if (screenPlacement.classList.contains('active') && gameMode === 'online') {
-                if (confirm('Leave online room?')) {
-                    leaveToMainMenu();
-                }
+                showConfirmModal({
+                    title: 'Leave Room?',
+                    desc: 'Are you sure you want to leave the multiplayer room?',
+                    confirmText: 'Leave Room',
+                    isDanger: true,
+                    onConfirm: () => {
+                        leaveToMainMenu();
+                    }
+                });
             } else {
                 leaveToMainMenu();
             }

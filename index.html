@@ -197,7 +197,7 @@
             <!-- SCREEN 5: BATTLE ARENA -->
             <section id="screen-battle" class="card screen">
                 <div class="battle-header">
-                    <button class="btn-back btn-to-menu">
+                    <button id="btn-battle-leave" class="btn-back btn-to-menu">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                         Leave
                     </button>
@@ -371,6 +371,18 @@
                     <span class="rule-num">3</span>
                     <span>A hit grants an extra turn</span>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM ACTION -->
+    <div id="modal-confirm" class="modal-overlay">
+        <div class="modal-card">
+            <h2 id="modal-confirm-title" class="modal-title">Leave Battle?</h2>
+            <p id="modal-confirm-desc" class="modal-desc">Are you sure you want to abandon the current battle?</p>
+            <div class="modal-actions">
+                <button id="btn-confirm-accept" class="btn btn-danger btn-full">Leave</button>
+                <button id="btn-confirm-cancel" class="btn btn-secondary btn-full">Cancel</button>
             </div>
         </div>
     </div>
