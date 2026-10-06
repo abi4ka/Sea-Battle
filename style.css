@@ -729,7 +729,13 @@ body {
     border-radius: 4px;
 }
 
-.cell:hover:not(.has-ship):not(.state-miss):not(.state-hit):not(.state-sunk) {
+#placement-grid,
+#placement-grid .cell {
+    cursor: pointer;
+}
+
+#placement-grid .cell:hover:not(.has-ship),
+.enemy-grid .battle-grid.active-turn .cell:hover:not(.state-miss):not(.state-hit):not(.state-sunk) {
     background: rgba(56, 189, 248, 0.14);
 }
 
@@ -1105,9 +1111,27 @@ body {
     flex-wrap: wrap;
 }
 
-/* Active turn board state */
-.enemy-grid .battle-grid.active-turn {
+/* Battle board cursor management */
+#my-battle-grid,
+#my-battle-grid .cell {
+    cursor: default;
+}
+
+.enemy-grid .battle-grid:not(.active-turn),
+.enemy-grid .battle-grid:not(.active-turn) .cell {
+    cursor: not-allowed;
+}
+
+/* Active turn board state: unified crosshair reticle across grid and cells */
+.enemy-grid .battle-grid.active-turn,
+.enemy-grid .battle-grid.active-turn .cell {
     cursor: crosshair;
+}
+
+.enemy-grid .battle-grid .cell.state-miss,
+.enemy-grid .battle-grid .cell.state-hit,
+.enemy-grid .battle-grid .cell.state-sunk {
+    cursor: not-allowed;
 }
 
 .enemy-grid:has(.active-turn) {
