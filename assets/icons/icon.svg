@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="116 116 280 280" width="1024" height="1024" fill="none">
   <!-- White Naval Ship Logo - Sea Battle -->
   <defs>
     <mask id="ship-cutout">
-      <rect width="512" height="512" fill="#FFFFFF"/>
+      <rect x="0" y="0" width="512" height="512" fill="#FFFFFF"/>
+      <rect x="116" y="116" width="280" height="280" fill="#FFFFFF"/>
       <!-- Bridge Windows Cutouts -->
       <rect x="210" y="196.5" width="33" height="20" rx="3" fill="#000000"/>
       <rect x="269" y="196.5" width="33" height="20" rx="3" fill="#000000"/>
