@@ -582,6 +582,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDisconnectHandled = false;
     let pendingShot = null;
     let shotTimeoutId = null;
+    let myPlayerId = null;
+    let opponentPlayerId = null;
+    let isRoomLocked = false;
+
+    function generatePlayerId(role) {
+        return `${role}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    }
 
     function clearShotTimeout() {
         if (shotTimeoutId) {
@@ -1406,6 +1413,9 @@ document.addEventListener('DOMContentLoaded', () => {
         rematchRequested = { me: false, opponent: false };
         onlineOpponentReady = false;
         isDisconnectHandled = false;
+        myPlayerId = null;
+        opponentPlayerId = null;
+        isRoomLocked = false;
         hostInviteBar.classList.add('hidden');
         showScreen(screenMenu);
     }
@@ -1468,11 +1478,17 @@ document.addEventListener('DOMContentLoaded', () => {
         myOnlineRole = null;
         isOnlineConnected = false;
         isDisconnectHandled = false;
+        myPlayerId = null;
+        opponentPlayerId = null;
+        isRoomLocked = false;
     }
 
     async function sendOnlineData(payload) {
         if (gameChannel) {
             try {
+                if (myPlayerId && !payload.senderId) {
+                    payload.senderId = myPlayerId;
+                }
                 await gameChannel.send({
                     type: 'broadcast',
                     event: 'game-event',
@@ -1490,16 +1506,46 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (data.type) {
             case 'JOINER_HELLO':
                 if (myOnlineRole === 'host') {
+                    // If room already has a locked opponent and another player tries to join
+                    if (isRoomLocked && opponentPlayerId && opponentPlayerId !== data.playerId) {
+                        sendOnlineData({
+                            type: 'ROOM_FULL',
+                            targetPlayerId: data.playerId,
+                            reason: 'Room is already full'
+                        });
+                        return;
+                    }
+
+                    opponentPlayerId = data.playerId;
+                    isRoomLocked = true;
                     showToast('Opponent connected', 'success');
-                    sendOnlineData({ type: 'LOBBY_READY' });
+                    sendOnlineData({
+                        type: 'LOBBY_READY',
+                        hostPlayerId: myPlayerId,
+                        joinerPlayerId: opponentPlayerId
+                    });
                     startOnlinePlacement();
                 }
                 break;
 
+            case 'ROOM_FULL':
+                if (myOnlineRole === 'joiner' && (!data.targetPlayerId || data.targetPlayerId === myPlayerId)) {
+                    clearJoinTimeout();
+                    showToast(data.reason || 'Room is already full', 'danger');
+                    leaveToMainMenu();
+                }
+                break;
+
             case 'LOBBY_READY':
-                clearJoinTimeout();
-                showToast('Connected', 'success');
-                startOnlinePlacement();
+                if (myOnlineRole === 'joiner') {
+                    if (data.joinerPlayerId && data.joinerPlayerId !== myPlayerId) {
+                        return; // Ignore if destined for another player
+                    }
+                    opponentPlayerId = data.hostPlayerId;
+                    clearJoinTimeout();
+                    showToast('Connected', 'success');
+                    startOnlinePlacement();
+                }
                 break;
 
             case 'FLEET_READY':
@@ -1735,6 +1781,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         roomCode = generateRoomCode();
         myOnlineRole = 'host';
+        myPlayerId = generatePlayerId('host');
+        opponentPlayerId = null;
+        isRoomLocked = false;
         displayRoomCode.textContent = roomCode;
         gameRoomCodeInput.value = '******';
         isCodeRevealed = false;
@@ -1744,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameChannel = supabase.channel(channelName, {
             config: {
                 broadcast: { ack: false, self: false },
-                presence: { key: `host-${Date.now()}` }
+                presence: { key: `host-${myPlayerId}` }
             }
         });
 
@@ -1754,7 +1803,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             if (!leftPresences || !Array.isArray(leftPresences)) return;
-            const opponentLeft = leftPresences.some(p => p.role && p.role !== 'host');
+            const opponentLeft = leftPresences.some(p => {
+                if (opponentPlayerId) {
+                    return p.playerId === opponentPlayerId;
+                }
+                return p.role && p.role !== 'host';
+            });
             if (opponentLeft) {
                 handleOpponentDisconnected('Opponent disconnected');
             }
@@ -1763,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameChannel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
-                await gameChannel.track({ role: 'host' });
+                await gameChannel.track({ role: 'host', playerId: myPlayerId });
                 showScreen(screenWaiting);
                 showToast('Room created');
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -1793,13 +1847,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         roomCode = code;
         myOnlineRole = 'joiner';
+        myPlayerId = generatePlayerId('joiner');
+        opponentPlayerId = null;
+        isRoomLocked = false;
         isDisconnectHandled = false;
         const channelName = `sea-battle-room-${roomCode}`;
 
         gameChannel = supabase.channel(channelName, {
             config: {
                 broadcast: { ack: false, self: false },
-                presence: { key: `joiner-${Date.now()}` }
+                presence: { key: `joiner-${myPlayerId}` }
             }
         });
 
@@ -1809,7 +1866,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             if (!leftPresences || !Array.isArray(leftPresences)) return;
-            const opponentLeft = leftPresences.some(p => p.role && p.role !== 'joiner');
+            const opponentLeft = leftPresences.some(p => {
+                if (opponentPlayerId) {
+                    return p.playerId === opponentPlayerId;
+                }
+                return p.role && p.role !== 'joiner';
+            });
             if (opponentLeft) {
                 handleOpponentDisconnected('Opponent disconnected');
             }
@@ -1818,9 +1880,9 @@ document.addEventListener('DOMContentLoaded', () => {
         gameChannel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
-                await gameChannel.track({ role: 'joiner' });
-                // Alert host
-                sendOnlineData({ type: 'JOINER_HELLO' });
+                await gameChannel.track({ role: 'joiner', playerId: myPlayerId });
+                // Alert host with our unique playerId
+                sendOnlineData({ type: 'JOINER_HELLO', playerId: myPlayerId });
 
                 joinTimeout = setTimeout(() => {
                     showToast('Host not responding', 'danger');
