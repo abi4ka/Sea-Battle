@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         placeShip(type, size, startIndex, isHorizontal) {
             if (!this.canPlaceShip(size, startIndex, isHorizontal)) return null;
 
-            const shipId = `ship-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+            const shipId = `ship-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
             const { x, y } = indexToCoords(startIndex);
             const cells = [];
 
@@ -246,35 +246,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         randomize() {
-            this.clear();
-            const shipQueue = [];
-            FLEET_DEFINITIONS.forEach(def => {
-                for (let i = 0; i < def.count; i++) {
-                    shipQueue.push({ type: def.type, size: def.size });
-                }
-            });
+            const MAX_BOARD_ATTEMPTS = 200;
+            for (let boardAttempt = 0; boardAttempt < MAX_BOARD_ATTEMPTS; boardAttempt++) {
+                this.clear();
+                const shipQueue = [];
+                FLEET_DEFINITIONS.forEach(def => {
+                    for (let i = 0; i < def.count; i++) {
+                        shipQueue.push({ type: def.type, size: def.size });
+                    }
+                });
 
-            // Sort larger ships first for higher placement probability
-            shipQueue.sort((a, b) => b.size - a.size);
+                // Sort larger ships first for higher placement probability
+                shipQueue.sort((a, b) => b.size - a.size);
 
-            for (const shipDef of shipQueue) {
-                let placed = false;
-                let attempts = 0;
-                while (!placed && attempts < 500) {
-                    attempts++;
-                    const isHorizontal = Math.random() < 0.5;
-                    const startIndex = Math.floor(Math.random() * TOTAL_CELLS);
-                    if (this.canPlaceShip(shipDef.size, startIndex, isHorizontal)) {
-                        this.placeShip(shipDef.type, shipDef.size, startIndex, isHorizontal);
-                        placed = true;
+                let allPlaced = true;
+                for (const shipDef of shipQueue) {
+                    let placed = false;
+                    let attempts = 0;
+                    while (!placed && attempts < 500) {
+                        attempts++;
+                        const isHorizontal = Math.random() < 0.5;
+                        const startIndex = Math.floor(Math.random() * TOTAL_CELLS);
+                        if (this.canPlaceShip(shipDef.size, startIndex, isHorizontal)) {
+                            this.placeShip(shipDef.type, shipDef.size, startIndex, isHorizontal);
+                            placed = true;
+                        }
+                    }
+                    if (!placed) {
+                        allPlaced = false;
+                        break;
                     }
                 }
-                if (!placed) {
-                    // Retry if unlucky
-                    return this.randomize();
+
+                if (allPlaced) {
+                    return true;
                 }
             }
-            return true;
+            return false;
         }
 
         isFleetReady() {
@@ -358,6 +366,45 @@ document.addEventListener('DOMContentLoaded', () => {
             this.hits = [];
             this.currentShipHits = [];
             this.targetQueue = [];
+            this.remainingEnemyShips = [];
+            FLEET_DEFINITIONS.forEach(def => {
+                for (let i = 0; i < def.count; i++) {
+                    this.remainingEnemyShips.push(def.size);
+                }
+            });
+        }
+
+        canShipFit(index, minSize) {
+            if (minSize <= 1) return true;
+            if (this.shotsFired.has(index)) return false;
+
+            const { x, y } = indexToCoords(index);
+
+            // Count contiguous unshot cells horizontally through index
+            let leftCount = 0;
+            for (let cx = x - 1; cx >= 0; cx--) {
+                if (this.shotsFired.has(coordsToIndex(cx, y))) break;
+                leftCount++;
+            }
+            let rightCount = 0;
+            for (let cx = x + 1; cx < GRID_SIZE; cx++) {
+                if (this.shotsFired.has(coordsToIndex(cx, y))) break;
+                rightCount++;
+            }
+            if (1 + leftCount + rightCount >= minSize) return true;
+
+            // Count contiguous unshot cells vertically through index
+            let upCount = 0;
+            for (let cy = y - 1; cy >= 0; cy--) {
+                if (this.shotsFired.has(coordsToIndex(x, cy))) break;
+                upCount++;
+            }
+            let downCount = 0;
+            for (let cy = y + 1; cy < GRID_SIZE; cy++) {
+                if (this.shotsFired.has(coordsToIndex(x, cy))) break;
+                downCount++;
+            }
+            return (1 + upCount + downCount) >= minSize;
         }
 
         getNextShot() {
@@ -372,30 +419,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Hunt Mode: checkerboard parity search
+            // Hunt Mode: intelligent search
             if (target === null) {
+                const maxRemainingSize = this.remainingEnemyShips.length > 0
+                    ? Math.max(...this.remainingEnemyShips)
+                    : 1;
+
                 const candidates = [];
+                const fallback = [];
+
                 for (let i = 0; i < TOTAL_CELLS; i++) {
-                    if (!this.shotsFired.has(i)) {
-                        const { x, y } = indexToCoords(i);
-                        // Parity filter
+                    if (this.shotsFired.has(i)) continue;
+
+                    fallback.push(i);
+
+                    // If remaining ships include size >= 2, skip cells where at least a size-2 ship cannot fit
+                    if (maxRemainingSize >= 2 && !this.canShipFit(i, 2)) {
+                        continue;
+                    }
+
+                    const { x, y } = indexToCoords(i);
+
+                    // If only 1-deck torpedo boats remain, bypass parity filter completely
+                    if (maxRemainingSize === 1) {
+                        candidates.push(i);
+                    } else {
+                        // Multi-deck ships: checkerboard parity search
                         if ((x + y) % 2 === 0) {
                             candidates.push(i);
                         }
                     }
                 }
 
-                // If parity candidates exhausted, check remaining cells
                 if (candidates.length > 0) {
                     target = candidates[Math.floor(Math.random() * candidates.length)];
-                } else {
-                    const fallback = [];
-                    for (let i = 0; i < TOTAL_CELLS; i++) {
-                        if (!this.shotsFired.has(i)) fallback.push(i);
-                    }
-                    if (fallback.length > 0) {
-                        target = fallback[Math.floor(Math.random() * fallback.length)];
-                    }
+                } else if (fallback.length > 0) {
+                    target = fallback[Math.floor(Math.random() * fallback.length)];
                 }
             }
 
@@ -405,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return target;
         }
 
-        registerShotResult(index, result, halo = []) {
+        registerShotResult(index, result, halo = [], ship = null) {
             if (result === 'hit') {
                 this.hits.push(index);
                 this.currentShipHits.push(index);
@@ -437,24 +496,38 @@ document.addEventListener('DOMContentLoaded', () => {
                         return isHorizontal ? c.y === first.y : c.x === first.x;
                     });
 
-                    // Add line extensions
+                    // Add line extensions with deduplication
                     if (isHorizontal) {
                         const minX = Math.min(...sortedHits.map(idx => indexToCoords(idx).x));
                         const maxX = Math.max(...sortedHits.map(idx => indexToCoords(idx).x));
                         const left = coordsToIndex(minX - 1, first.y);
                         const right = coordsToIndex(maxX + 1, first.y);
-                        if (left !== -1 && !this.shotsFired.has(left)) this.targetQueue.unshift(left);
-                        if (right !== -1 && !this.shotsFired.has(right)) this.targetQueue.unshift(right);
+                        if (left !== -1 && !this.shotsFired.has(left) && !this.targetQueue.includes(left)) {
+                            this.targetQueue.unshift(left);
+                        }
+                        if (right !== -1 && !this.shotsFired.has(right) && !this.targetQueue.includes(right)) {
+                            this.targetQueue.unshift(right);
+                        }
                     } else {
                         const minY = Math.min(...sortedHits.map(idx => indexToCoords(idx).y));
                         const maxY = Math.max(...sortedHits.map(idx => indexToCoords(idx).y));
                         const top = coordsToIndex(first.x, minY - 1);
                         const bottom = coordsToIndex(first.x, maxY + 1);
-                        if (top !== -1 && !this.shotsFired.has(top)) this.targetQueue.unshift(top);
-                        if (bottom !== -1 && !this.shotsFired.has(bottom)) this.targetQueue.unshift(bottom);
+                        if (top !== -1 && !this.shotsFired.has(top) && !this.targetQueue.includes(top)) {
+                            this.targetQueue.unshift(top);
+                        }
+                        if (bottom !== -1 && !this.shotsFired.has(bottom) && !this.targetQueue.includes(bottom)) {
+                            this.targetQueue.unshift(bottom);
+                        }
                     }
                 }
             } else if (result === 'sunk') {
+                if (ship && typeof ship.size === 'number') {
+                    const sIdx = this.remainingEnemyShips.indexOf(ship.size);
+                    if (sIdx !== -1) {
+                        this.remainingEnemyShips.splice(sIdx, 1);
+                    }
+                }
                 // Add halo cells to shotsFired so AI won't waste turns on them
                 halo.forEach(hIdx => this.shotsFired.add(hIdx));
                 this.currentShipHits = [];
@@ -1246,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBattleUI();
 
             if (gameMode === 'ai' && activePlayer === 2) {
-                aiEngine.registerShotResult(index, 'sunk', shotResult.halo);
+                aiEngine.registerShotResult(index, 'sunk', shotResult.halo, shotResult.ship);
                 triggerAiTurn(700);
             }
         }
@@ -1285,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const shipName = result.ship ? (result.ship.name || (shipDef ? shipDef.name : result.ship.type)) : 'Ship';
                 showToast(`${shipName} lost!`, 'danger');
 
-                aiEngine.registerShotResult(aiShotIndex, 'sunk', result.halo);
+                aiEngine.registerShotResult(aiShotIndex, 'sunk', result.halo, result.ship);
 
                 if (result.allSunk) {
                     handleGameOver(false);
