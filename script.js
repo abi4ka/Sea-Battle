@@ -217,9 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.grid[idx] = shipId;
             }
 
+            const shipDef = FLEET_DEFINITIONS.find(d => d.type === type);
             const ship = {
                 id: shipId,
                 type,
+                name: shipDef ? shipDef.name : type,
                 size,
                 isHorizontal,
                 cells,
@@ -1143,7 +1145,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (shotResult.result === 'sunk') {
             sound.play('sunk');
-            if (isFriendlyShooter) battleStats.hits++;
+            if (isFriendlyShooter) {
+                battleStats.hits++;
+                const shipDef = shotResult.ship ? FLEET_DEFINITIONS.find(d => d.type === shotResult.ship.type) : null;
+                const shipName = shotResult.ship ? (shotResult.ship.name || (shipDef ? shipDef.name : shotResult.ship.type)) : 'Ship';
+                showToast(`${shipName} sunk!`, 'success');
+            }
 
             if (shotResult.allSunk) {
                 // Game Over!
@@ -1186,6 +1193,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 triggerAiTurn(750);
             } else if (result.result === 'sunk') {
                 sound.play('sunk');
+                const shipDef = result.ship ? FLEET_DEFINITIONS.find(d => d.type === result.ship.type) : null;
+                const shipName = result.ship ? (result.ship.name || (shipDef ? shipDef.name : result.ship.type)) : 'Ship';
+                showToast(`${shipName} lost!`, 'danger');
+
                 aiEngine.registerShotResult(aiShotIndex, 'sunk', result.halo);
 
                 if (result.allSunk) {
@@ -1426,12 +1437,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 renderBattleBoards();
 
+                const shipDef = result.ship ? FLEET_DEFINITIONS.find(d => d.type === result.ship.type) : null;
+                const shipName = result.ship ? (result.ship.name || (shipDef ? shipDef.name : result.ship.type)) : null;
+
                 // Respond with evaluation
                 sendOnlineData({
                     type: 'SHOT_RESPONSE',
                     index: incomingIndex,
                     result: result.result,
-                    shipName: result.ship ? result.ship.name : null,
+                    shipName: shipName,
+                    shipCells: result.ship ? result.ship.cells : [],
+                    shipType: result.ship ? result.ship.type : null,
+                    shipSize: result.ship ? result.ship.size : 0,
                     halo: result.halo || [],
                     allSunk: result.allSunk
                 });
@@ -1448,6 +1465,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateBattleUI();
                 } else if (result.result === 'sunk') {
                     sound.play('sunk');
+                    if (shipName) {
+                        showToast(`${shipName} lost!`, 'danger');
+                    }
                     if (result.allSunk) {
                         handleGameOver(false);
                         return;
@@ -1479,8 +1499,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (data.result === 'sunk') {
                     sound.play('sunk');
                     battleStats.hits++;
-                    player2Board.shots[shotIdx] = 'sunk';
                     player2Board.lastShotIndex = shotIdx;
+
+                    // Mark ALL decks of the sunken ship as 'sunk'
+                    if (data.shipCells && Array.isArray(data.shipCells) && data.shipCells.length > 0) {
+                        data.shipCells.forEach(cIdx => {
+                            player2Board.shots[cIdx] = 'sunk';
+                        });
+                    } else {
+                        player2Board.shots[shotIdx] = 'sunk';
+                    }
 
                     // Mark sunken ship and surrounding halo
                     if (data.halo && Array.isArray(data.halo)) {
@@ -1489,6 +1517,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 player2Board.shots[hIdx] = 'miss';
                             }
                         });
+                    }
+
+                    if (data.shipName) {
+                        showToast(`${data.shipName} sunk!`, 'success');
                     }
 
                     if (data.allSunk) {
