@@ -31,6 +31,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return this.isMuted;
         }
 
+        /**
+         * Ultra-minimalist tactile UI tap generator (iOS / Telegram haptic style)
+         */
+        playTap(startTime, freq, duration, peakGain, sweepToFreq = null) {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            if (sweepToFreq !== null && sweepToFreq !== freq) {
+                osc.frequency.exponentialRampToValueAtTime(Math.max(20, sweepToFreq), startTime + duration);
+            }
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1400, startTime);
+
+            gain.gain.setValueAtTime(0.0001, startTime);
+            gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.002);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
         play(type) {
             if (this.isMuted) return;
             try {
@@ -39,122 +69,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 const now = this.ctx.currentTime;
 
                 switch (type) {
+                    case 'place': {
+                        // iOS keyboard / picker wheel micro-tick (ultra-short subtle haptic click)
+                        this.playTap(now, 460, 0.016, 0.045, 260);
+                        break;
+                    }
+
                     case 'shot': {
-                        // Cannon launch: quick noise burst + descending pitch
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(280, now);
-                        osc.frequency.exponentialRampToValueAtTime(60, now + 0.18);
-                        gain.gain.setValueAtTime(0.18, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.18);
+                        // Soft UI action tap (Telegram send / keyboard tock)
+                        this.playTap(now, 220, 0.024, 0.05, 120);
                         break;
                     }
 
                     case 'miss': {
-                        // Splash in water: subtle high-pitch tone + white splash
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(440, now);
-                        osc.frequency.exponentialRampToValueAtTime(220, now + 0.22);
-                        gain.gain.setValueAtTime(0.12, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.22);
+                        // Muted low-frequency subtle pop (empty cell tap)
+                        this.playTap(now, 150, 0.022, 0.035, 90);
                         break;
                     }
 
                     case 'hit': {
-                        // Explosive crunch
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'square';
-                        osc.frequency.setValueAtTime(140, now);
-                        osc.frequency.exponentialRampToValueAtTime(35, now + 0.25);
-                        gain.gain.setValueAtTime(0.25, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.25);
+                        // Delicate double-tick (Telegram reaction / positive toggle tap)
+                        this.playTap(now, 480, 0.016, 0.045);
+                        this.playTap(now + 0.028, 680, 0.018, 0.045);
                         break;
                     }
 
                     case 'sunk': {
-                        // Dramatic double explosion + naval horn
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(110, now);
-                        osc.frequency.setValueAtTime(80, now + 0.18);
-                        gain.gain.setValueAtTime(0.3, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.55);
-                        break;
-                    }
-
-                    case 'place': {
-                        // Soft click
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(600, now);
-                        osc.frequency.exponentialRampToValueAtTime(900, now + 0.05);
-                        gain.gain.setValueAtTime(0.08, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.05);
+                        // Soft ascending triple-tap ripple
+                        this.playTap(now, 440, 0.022, 0.04);
+                        this.playTap(now + 0.028, 554, 0.022, 0.045);
+                        this.playTap(now + 0.056, 659, 0.035, 0.05);
                         break;
                     }
 
                     case 'win': {
-                        // Triumphant chord
-                        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-                            const osc = this.ctx.createOscillator();
-                            const gain = this.ctx.createGain();
-                            osc.type = 'triangle';
-                            osc.frequency.setValueAtTime(freq, now + i * 0.08);
-                            gain.gain.setValueAtTime(0.15, now + i * 0.08);
-                            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.35);
-                            osc.connect(gain);
-                            gain.connect(this.ctx.destination);
-                            osc.start(now + i * 0.08);
-                            osc.stop(now + i * 0.08 + 0.35);
+                        // Minimalist, calm completion chime (Todoist / Things 3 style)
+                        const chord = [523.25, 659.25, 783.99]; // C5, E5, G5
+                        chord.forEach((freq, idx) => {
+                            this.playTap(now + idx * 0.065, freq, 0.22, 0.04);
                         });
                         break;
                     }
 
                     case 'lose': {
-                        // Descending defeat chord
-                        [440, 392, 349.23, 261.63].forEach((freq, i) => {
-                            const osc = this.ctx.createOscillator();
-                            const gain = this.ctx.createGain();
-                            osc.type = 'sine';
-                            osc.frequency.setValueAtTime(freq, now + i * 0.12);
-                            gain.gain.setValueAtTime(0.14, now + i * 0.12);
-                            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.4);
-                            osc.connect(gain);
-                            gain.connect(this.ctx.destination);
-                            osc.start(now + i * 0.12);
-                            osc.stop(now + i * 0.12 + 0.4);
-                        });
+                        // Soft muted low closure note
+                        this.playTap(now, 220, 0.18, 0.035);
+                        this.playTap(now + 0.08, 174.61, 0.22, 0.035);
                         break;
                     }
                 }
             } catch (e) {
-                // AudioContext restrictions fallback
+                // AudioContext fallback
             }
         }
     }
