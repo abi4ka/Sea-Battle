@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1400, startTime);
+            filter.frequency.setValueAtTime(1600, startTime);
 
             gain.gain.setValueAtTime(0.0001, startTime);
-            gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.002);
+            gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.003);
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
             osc.connect(filter);
@@ -70,35 +70,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 switch (type) {
                     case 'place': {
-                        // iOS keyboard / picker wheel micro-tick (ultra-short subtle haptic click)
-                        this.playTap(now, 460, 0.016, 0.045, 260);
+                        // iOS keyboard / picker wheel tap (crisp tactile click)
+                        this.playTap(now, 520, 0.035, 0.18, 280);
                         break;
                     }
 
                     case 'shot': {
-                        // Soft UI action tap (Telegram send / keyboard tock)
-                        this.playTap(now, 220, 0.024, 0.05, 120);
+                        // Soft UI action tap (Telegram send / tactile tock)
+                        this.playTap(now, 240, 0.045, 0.22, 110);
                         break;
                     }
 
                     case 'miss': {
-                        // Muted low-frequency subtle pop (empty cell tap)
-                        this.playTap(now, 150, 0.022, 0.035, 90);
+                        // Muted low-frequency soft pop (empty cell tap)
+                        this.playTap(now, 160, 0.038, 0.16, 85);
                         break;
                     }
 
                     case 'hit': {
                         // Delicate double-tick (Telegram reaction / positive toggle tap)
-                        this.playTap(now, 480, 0.016, 0.045);
-                        this.playTap(now + 0.028, 680, 0.018, 0.045);
+                        this.playTap(now, 520, 0.032, 0.20);
+                        this.playTap(now + 0.035, 740, 0.035, 0.20);
                         break;
                     }
 
                     case 'sunk': {
                         // Soft ascending triple-tap ripple
-                        this.playTap(now, 440, 0.022, 0.04);
-                        this.playTap(now + 0.028, 554, 0.022, 0.045);
-                        this.playTap(now + 0.056, 659, 0.035, 0.05);
+                        this.playTap(now, 440, 0.035, 0.18);
+                        this.playTap(now + 0.038, 554, 0.038, 0.20);
+                        this.playTap(now + 0.076, 659, 0.055, 0.22);
                         break;
                     }
 
@@ -106,15 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Minimalist, calm completion chime (Todoist / Things 3 style)
                         const chord = [523.25, 659.25, 783.99]; // C5, E5, G5
                         chord.forEach((freq, idx) => {
-                            this.playTap(now + idx * 0.065, freq, 0.22, 0.04);
+                            this.playTap(now + idx * 0.08, freq, 0.32, 0.18);
                         });
                         break;
                     }
 
                     case 'lose': {
                         // Soft muted low closure note
-                        this.playTap(now, 220, 0.18, 0.035);
-                        this.playTap(now + 0.08, 174.61, 0.22, 0.035);
+                        this.playTap(now, 240, 0.25, 0.16);
+                        this.playTap(now + 0.10, 180, 0.30, 0.16);
                         break;
                     }
                 }
