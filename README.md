@@ -1,49 +1,23 @@
 # Sea Battle
 
-A modern, responsive web application for the classic naval combat game **Sea Battle (Battleship)**, featuring a clean GitHub Dark Graphite interface, tactical AI, and cross-device online multiplayer via Supabase Realtime (WebSockets).
-
-Modeled after the architecture and realtime engine of the **Tic-Tac-Toe** project, with visual design synchronized to the GitHub Dark Graphite design system of **Json-Formatter** and **Time-Calculator**.
-
----
+A modern, responsive web application for playing classic naval combat (Battleship) locally against tactical AI or online across devices via Supabase Realtime (WebSockets).
 
 ## Features
 
-- **Dual Combat Modes**:
-  - 🤖 **VS Computer (Single Player vs AI)**: Battle against an intelligent tactical AI utilizing a two-phase hunter-killer strategy (parity checkerboard search + directional target tracking along the ship's axis).
-  - 🌐 **Online Multiplayer**: Realtime cross-device combat powered by Supabase Realtime (WebSockets over secure port 443) with zero database setup. Direct room creation with 6-character room codes and shareable join URLs (`?room=CODE`).
-- **Classic Naval Rules**:
-  - Standard 10×10 coordinate grid (Columns A–J, Rows 1–10).
-  - Standard fleet armada (10 ships, 20 cells total):
-    - 1 × Battleship (4 cells)
-    - 2 × Cruisers (3 cells)
-    - 3 × Destroyers (2 cells)
-    - 4 × Patrol Boats (1 cell)
-  - Distance rule: Ships cannot touch horizontally, vertically, or diagonally (minimum 1-cell buffer).
-  - **Consecutive Volleys**: Successfully hitting or sinking an enemy ship awards an immediate extra shot!
-  - **Automatic Halo Marking**: Surrounding water buffer cells are automatically marked as misses once a ship is sunk.
-- **Intuitive Fleet Deployment**:
-  - One-click randomized armada deployment ("Random").
-  - Manual placement with collision highlighting, orientation toggle via button or `R` key, and click-to-dock ship removal.
-- **Web Audio API Sound Engine**:
-  - Procedurally synthesized in-browser sound effects: cannon volleys, water splashes, explosive hits, naval alarm upon ship sinking, and victory/defeat fanfares.
-  - No external audio files required. Header mute/unmute toggle persisted in `localStorage`.
-- **In-Game Reactions**:
-  - Interactive emoji reactions (`👍`, `🎯`, `💥`, `😡`, `😂`) floating across screens during online battles.
-- **Responsive Layout**:
-  - Full support for desktop monitors, tablets, and smartphones (dual radar grids side-by-side or quick-toggle tabs on mobile).
-
----
+- **Game Modes**: Single Player against an intelligent tactical AI (two-phase parity search and axis tracking) and Online Multiplayer across separate devices.
+- **Cross-Network Realtime Multiplayer**: Connects players across networks via Supabase Realtime (WebSockets on secure port 443) with zero database setup required.
+- **Direct Link Sharing**: Room creation generates a 6-character room code and a direct join URL (`?room=CODE`).
+- **Classic Naval Rules**: Standard 10x10 coordinate grid, 10-ship armada, 1-cell distance buffer rule, consecutive turns on hit, and automatic halo marking around sunk ships.
+- **Fleet Deployment**: Fast one-click randomized deployment or manual dock placement with collision preview and keyboard rotation (`R`).
+- **Tactile Audio Feedback**: Minimalist haptic interface clicks and taps synthesized via the Web Audio API with zero external audio assets.
+- **Pure Static Architecture**: Runs completely in the browser with no build steps, making it ideal for hosting on GitHub Pages.
 
 ## Tech Stack
 
-- **Frontend**: HTML5, Vanilla CSS3 (CSS Variables, Flexbox, CSS Grid, GitHub Primer Dark palette)
-- **Fonts**: Google Fonts (*Inter*, *JetBrains Mono*, system fonts)
-- **Programming Language**: Vanilla JavaScript (ES6+ Modules & Classes)
+- **Frontend**: HTML5, Vanilla CSS3 (CSS Variables, Flexbox, Responsive Grid)
+- **Programming Language**: JavaScript (ES6+)
 - **Networking**: Supabase Realtime (WebSockets via Broadcast & Presence channels)
-- **Audio**: Web Audio API (procedural synthesis)
-- **Architecture**: Pure static single-page application (ready for GitHub Pages, Netlify, or Vercel)
-
----
+- **Audio**: Web Audio API (synthesized tactile UI sounds)
 
 ## Configuration
 
@@ -58,27 +32,24 @@ window.SUPABASE_CONFIG = {
 
 > **Note**: Supabase Realtime Broadcast and Presence run purely in-memory over WebSockets — no database tables or SQL migrations are required.
 
----
-
 ## Local Development
 
 Since this project consists of standard static assets, no compilation or build steps are required.
 
 To run locally:
 
-1. Navigate to the project directory:
+1. Clone the repository:
    ```bash
+   git clone https://github.com/abi4ka/Sea-Battle.git
    cd Sea-Battle
    ```
 
 2. Start a local HTTP server:
    ```bash
-   python3 -m http.server 8000
+   python -m http.server 8000
    ```
 
 3. Open `http://localhost:8000` in your web browser.
-
----
 
 ## License
 
