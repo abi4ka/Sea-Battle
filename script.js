@@ -1456,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reviewStatusBadge.className = `review-badge ${isWinner ? 'victory' : 'defeat'}`;
         }
         if (reviewStatsSummary) {
-            reviewStatsSummary.textContent = `${battleStats.shots} shots • ${accuracy}%`;
+            reviewStatsSummary.textContent = `${battleStats.shots} shots • ${battleStats.hits} hits • ${accuracy}%`;
         }
 
         const rematchText = (gameMode === 'online')
@@ -1472,10 +1472,13 @@ document.addEventListener('DOMContentLoaded', () => {
             sendFleetReveal();
         }
 
-        // Render boards so unsunk enemy ships are revealed immediately behind modal
+        // Render boards so unsunk enemy ships are revealed immediately
         renderBattleBoards();
 
-        modalGameOver.classList.add('active');
+        // Directly show review bar at the bottom without blocking the boards
+        if (postGameReviewBar) {
+            postGameReviewBar.classList.remove('hidden');
+        }
     }
 
     function enterBattlefieldReview() {
