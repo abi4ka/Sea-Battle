@@ -313,6 +313,26 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Post-game review bar (visible when reviewing boards after battle) -->
+                <div id="post-game-review-bar" class="post-game-review-bar hidden">
+                    <div class="review-status">
+                        <span id="review-status-badge" class="review-badge victory">Victory</span>
+                        <span id="review-stats-summary" class="review-stats-summary">0 shots • 0%</span>
+                    </div>
+                    <div class="review-actions">
+                        <button id="btn-review-stats" class="btn btn-secondary btn-sm" title="Show complete match stats">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            <span>Stats</span>
+                        </button>
+                        <button id="btn-review-rematch" class="btn btn-primary btn-sm">
+                            <span id="btn-review-rematch-text">Play Again</span>
+                        </button>
+                        <button id="btn-review-menu" class="btn btn-secondary btn-sm">
+                            <span>Menu</span>
+                        </button>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -320,7 +340,12 @@
     <!-- MODAL: GAME OVER -->
     <div id="modal-gameover" class="modal-overlay">
         <div class="modal-card">
-            <h2 id="modal-gameover-title" class="modal-title victory">Victory</h2>
+            <div class="modal-header">
+                <h2 id="modal-gameover-title" class="modal-title victory">Victory</h2>
+                <button id="btn-close-gameover" class="btn-icon" title="Review battlefield">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
             <p id="modal-gameover-desc" class="modal-desc">Enemy fleet destroyed</p>
             
             <div class="stats-grid">
@@ -339,6 +364,10 @@
             </div>
 
             <div class="modal-actions">
+                <button id="btn-gameover-review" class="btn btn-secondary btn-full">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>Review Battlefield</span>
+                </button>
                 <button id="btn-gameover-rematch" class="btn btn-primary btn-full">
                     <span id="btn-gameover-rematch-text">Play Again</span>
                 </button>
