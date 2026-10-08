@@ -546,24 +546,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const screenPlacement = document.getElementById('screen-placement');
     const screenBattle = document.getElementById('screen-battle');
 
-    // Modals
-    const modalGameOver = document.getElementById('modal-gameover');
-    const modalGameOverTitle = document.getElementById('modal-gameover-title');
-    const modalGameOverDesc = document.getElementById('modal-gameover-desc');
-    const btnCloseGameover = document.getElementById('btn-close-gameover');
-    const btnGameoverReview = document.getElementById('btn-gameover-review');
-    const statShots = document.getElementById('stat-shots');
-    const statHits = document.getElementById('stat-hits');
-    const statAccuracy = document.getElementById('stat-accuracy');
-    const btnGameOverRematch = document.getElementById('btn-gameover-rematch');
-    const btnGameOverRematchText = document.getElementById('btn-gameover-rematch-text');
-    const btnGameOverMenu = document.getElementById('btn-gameover-menu');
-
-    // Post-Game Review Bar
+    // Post-Game Action Bar
     const postGameReviewBar = document.getElementById('post-game-review-bar');
     const reviewStatusBadge = document.getElementById('review-status-badge');
     const reviewStatsSummary = document.getElementById('review-stats-summary');
-    const btnReviewStats = document.getElementById('btn-review-stats');
     const btnReviewRematch = document.getElementById('btn-review-rematch');
     const btnReviewRematchText = document.getElementById('btn-review-rematch-text');
     const btnReviewMenu = document.getElementById('btn-review-menu');
@@ -989,14 +975,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-        if (e.key === 'Escape') {
-            if (modalGameOver && modalGameOver.classList.contains('active') && isBattleReviewMode) {
-                e.preventDefault();
-                enterBattlefieldReview();
-                return;
-            }
-        }
-
         if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') {
             if (screenPlacement.classList.contains('active')) {
                 e.preventDefault();
@@ -1053,7 +1031,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isBattleReviewMode = false;
         if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
         if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
-        if (modalGameOver) modalGameOver.classList.remove('active');
         if (btnSurrender) btnSurrender.classList.remove('hidden');
         if (turnSubtitle) turnSubtitle.classList.add('hidden');
 
@@ -1424,19 +1401,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const victoryTitle = customTitle || (isWinner ? 'Victory' : 'Defeat');
-        const victoryDesc = customDesc || (isWinner ? 'Enemy fleet destroyed' : 'Your fleet was sunk');
 
         if (isWinner) {
             sound.play('win');
-            modalGameOverTitle.textContent = victoryTitle;
-            modalGameOverTitle.className = 'modal-title victory';
-            modalGameOverDesc.textContent = victoryDesc;
             if (turnTitle) turnTitle.textContent = victoryTitle;
         } else {
             sound.play('lose');
-            modalGameOverTitle.textContent = victoryTitle;
-            modalGameOverTitle.className = 'modal-title defeat';
-            modalGameOverDesc.textContent = victoryDesc;
             if (turnTitle) turnTitle.textContent = victoryTitle;
         }
 
@@ -1446,9 +1416,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const accuracy = battleStats.shots > 0 ? Math.round((battleStats.hits / battleStats.shots) * 100) : 0;
-        statShots.textContent = battleStats.shots;
-        statHits.textContent = battleStats.hits;
-        statAccuracy.textContent = `${accuracy}%`;
 
         // Update post-game review bar
         if (reviewStatusBadge) {
@@ -1463,11 +1430,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ? (rematchRequested.opponent ? 'Accept Rematch' : 'Rematch')
             : 'Play Again';
 
-        btnGameOverRematchText.textContent = rematchText;
         if (btnReviewRematchText) btnReviewRematchText.textContent = rematchText;
 
         if (gameMode === 'online') {
-            btnGameOverRematch.classList.remove('hidden');
             if (btnReviewRematch) btnReviewRematch.classList.remove('hidden');
             sendFleetReveal();
         }
@@ -1479,12 +1444,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (postGameReviewBar) {
             postGameReviewBar.classList.remove('hidden');
         }
-    }
-
-    function enterBattlefieldReview() {
-        if (!isBattleReviewMode) return;
-        if (modalGameOver) modalGameOver.classList.remove('active');
-        if (postGameReviewBar) postGameReviewBar.classList.remove('hidden');
     }
 
     function sendFleetReveal() {
@@ -1503,7 +1462,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRematchAction() {
-        if (modalGameOver) modalGameOver.classList.remove('active');
         if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
         if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
         isBattleReviewMode = false;
@@ -1515,7 +1473,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 startOnlinePlacement();
             } else {
                 showToast('Rematch request sent!');
-                btnGameOverRematchText.textContent = 'Waiting...';
                 if (btnReviewRematchText) btnReviewRematchText.textContent = 'Waiting...';
             }
         } else {
@@ -1528,41 +1485,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    btnGameOverRematch.addEventListener('click', handleRematchAction);
     if (btnReviewRematch) btnReviewRematch.addEventListener('click', handleRematchAction);
 
-    btnGameOverMenu.addEventListener('click', () => {
-        modalGameOver.classList.remove('active');
-        leaveToMainMenu();
-    });
     if (btnReviewMenu) {
         btnReviewMenu.addEventListener('click', () => {
             leaveToMainMenu();
-        });
-    }
-
-    if (btnGameoverReview) {
-        btnGameoverReview.addEventListener('click', () => {
-            enterBattlefieldReview();
-        });
-    }
-
-    if (btnCloseGameover) {
-        btnCloseGameover.addEventListener('click', () => {
-            enterBattlefieldReview();
-        });
-    }
-
-    modalGameOver.addEventListener('click', (e) => {
-        if (e.target === modalGameOver && isBattleReviewMode) {
-            enterBattlefieldReview();
-        }
-    });
-
-    if (btnReviewStats) {
-        btnReviewStats.addEventListener('click', () => {
-            if (modalGameOver) modalGameOver.classList.add('active');
-            if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
         });
     }
 
@@ -1727,7 +1654,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isBattleReviewMode = false;
         if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
         if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
-        if (modalGameOver) modalGameOver.classList.remove('active');
         if (btnSurrender) btnSurrender.classList.remove('hidden');
         if (turnSubtitle) turnSubtitle.classList.add('hidden');
         showScreen(screenMenu);
@@ -2043,7 +1969,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rematchRequested.me) {
                     startOnlinePlacement();
                 } else {
-                    btnGameOverRematchText.textContent = 'Accept Rematch';
                     if (btnReviewRematchText) btnReviewRematchText.textContent = 'Accept Rematch';
                     showToast('Opponent requested rematch');
                 }
@@ -2073,7 +1998,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // If match already concluded and reviewing battlefield
         if (isBattleReviewMode) {
-            btnGameOverRematch.classList.add('hidden');
             if (btnReviewRematch) btnReviewRematch.classList.add('hidden');
             return;
         }
@@ -2081,14 +2005,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // If currently in battle arena
         if (screenBattle.classList.contains('active')) {
             handleGameOver(true, 'Victory', reason);
-            btnGameOverRematch.classList.add('hidden');
-            if (btnReviewRematch) btnReviewRematch.classList.add('hidden');
-            return;
-        }
-
-        // If game over modal is already open
-        if (modalGameOver.classList.contains('active')) {
-            btnGameOverRematch.classList.add('hidden');
             if (btnReviewRematch) btnReviewRematch.classList.add('hidden');
             return;
         }
@@ -2114,7 +2030,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isBattleReviewMode = false;
         if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
         if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
-        if (modalGameOver) modalGameOver.classList.remove('active');
         if (btnSurrender) btnSurrender.classList.remove('hidden');
         if (turnSubtitle) turnSubtitle.classList.add('hidden');
         initPlacementGrid();
