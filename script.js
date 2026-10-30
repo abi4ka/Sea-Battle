@@ -665,6 +665,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let myPlayerId = null;
     let opponentPlayerId = null;
     let isRoomLocked = false;
+    let opponentLeaveTimeoutId = null;
+    const OPPONENT_RECONNECT_GRACE_MS = 8000;
 
     function generatePlayerId(role) {
         return `${role}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -1772,6 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {}
             await removeGameChannel();
         }
+        clearOpponentLeaveTimeout();
         roomCode = null;
         myOnlineRole = null;
         isOnlineConnected = false;
@@ -2065,7 +2068,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function clearOpponentLeaveTimeout() {
+        if (opponentLeaveTimeoutId) {
+            clearTimeout(opponentLeaveTimeoutId);
+            opponentLeaveTimeoutId = null;
+        }
+    }
+
+    function isOpponentPresence(presence) {
+        if (opponentPlayerId) {
+            return presence.playerId === opponentPlayerId;
+        }
+        return presence.role && presence.role !== myOnlineRole;
+    }
+
+    function isOpponentPresent(channel) {
+        const state = channel.presenceState();
+        return Object.values(state).some(metas => Array.isArray(metas) && metas.some(isOpponentPresence));
+    }
+
+    // A brief network drop also shows up as a presence leave: give the opponent a grace period to reappear
+    function handleOpponentPresenceLeave(channel, leftPresences) {
+        if (!leftPresences || !Array.isArray(leftPresences) || isDisconnectHandled) return;
+        if (!leftPresences.some(isOpponentPresence) || opponentLeaveTimeoutId || isOpponentPresent(channel)) return;
+
+        showToast('Opponent connection lost', 'danger');
+        opponentLeaveTimeoutId = setTimeout(() => {
+            opponentLeaveTimeoutId = null;
+            if (channel !== gameChannel || isOpponentPresent(channel)) return;
+            handleOpponentDisconnected('Opponent disconnected');
+        }, OPPONENT_RECONNECT_GRACE_MS);
+    }
+
+    function handleOpponentPresenceJoin(newPresences) {
+        if (!opponentLeaveTimeoutId || !newPresences || !Array.isArray(newPresences)) return;
+        if (newPresences.some(isOpponentPresence)) {
+            clearOpponentLeaveTimeout();
+            showToast('Opponent reconnected', 'success');
+        }
+    }
+
     function handleOpponentDisconnected(reason = 'Opponent disconnected') {
+        clearOpponentLeaveTimeout();
         if (gameMode !== 'online' || !isOnlineConnected || isDisconnectHandled) return;
         isDisconnectHandled = true;
 
@@ -2154,23 +2198,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             if (channel !== gameChannel) return;
-            if (!leftPresences || !Array.isArray(leftPresences)) return;
-            const opponentLeft = leftPresences.some(p => {
-                if (opponentPlayerId) {
-                    return p.playerId === opponentPlayerId;
-                }
-                return p.role && p.role !== 'host';
-            });
-            if (opponentLeft) {
-                handleOpponentDisconnected('Opponent disconnected');
-            }
+            handleOpponentPresenceLeave(channel, leftPresences);
         });
+
+        channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+            if (channel !== gameChannel) return;
+            handleOpponentPresenceJoin(newPresences);
+        });
+
+        // SUBSCRIBED fires again after every automatic rejoin; only the first one starts the lobby flow
+        let hasSubscribed = false;
 
         channel.subscribe(async (status) => {
             if (channel !== gameChannel) return;
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
                 await channel.track({ role: 'host', playerId: myPlayerId });
+                if (hasSubscribed) return;
+                hasSubscribed = true;
                 showScreen(screenWaiting);
                 showToast('Room created');
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -2226,23 +2271,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             if (channel !== gameChannel) return;
-            if (!leftPresences || !Array.isArray(leftPresences)) return;
-            const opponentLeft = leftPresences.some(p => {
-                if (opponentPlayerId) {
-                    return p.playerId === opponentPlayerId;
-                }
-                return p.role && p.role !== 'joiner';
-            });
-            if (opponentLeft) {
-                handleOpponentDisconnected('Opponent disconnected');
-            }
+            handleOpponentPresenceLeave(channel, leftPresences);
         });
+
+        channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+            if (channel !== gameChannel) return;
+            handleOpponentPresenceJoin(newPresences);
+        });
+
+        // SUBSCRIBED fires again after every automatic rejoin; only the first one starts the lobby flow
+        let hasSubscribed = false;
 
         channel.subscribe(async (status) => {
             if (channel !== gameChannel) return;
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
                 await channel.track({ role: 'joiner', playerId: myPlayerId });
+                if (hasSubscribed) return;
+                hasSubscribed = true;
                 // Alert host with our unique playerId
                 sendOnlineData({ type: 'JOINER_HELLO', playerId: myPlayerId });
 
