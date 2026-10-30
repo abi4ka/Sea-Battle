@@ -11,6 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
     <link rel="alternate icon" type="image/png" href="assets/icons/192.png">
     <link rel="apple-touch-icon" href="assets/icons/192.png">
+    <link rel="manifest" href="manifest.json">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -372,5 +373,15 @@
     </div>
 
     <script defer src="script.js"></script>
+
+    <!-- PWA Service Worker Registration (no reload on install or update: an online match must not be interrupted) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch((err) => console.error('PWA ServiceWorker failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>
