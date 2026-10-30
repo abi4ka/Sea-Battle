@@ -2117,8 +2117,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showToast(reason, 'danger');
 
-        // If host waiting in lobby before opponent ever joined
+        // If host waiting in lobby before opponent ever joined (keep tracking the opponent who joins later)
         if (screenWaiting.classList.contains('active')) {
+            isDisconnectHandled = false;
             return;
         }
 
@@ -2142,6 +2143,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1500);
             return;
         }
+
+        // Still connecting from the lobby: no match to end yet
+        isDisconnectHandled = false;
     }
 
     function startOnlinePlacement() {
