@@ -151,6 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // BOARD LOGIC CLASS
     // ==========================================
+    let nextShipId = 0; // Monotonic counter: randomize() places a whole fleet within the same millisecond
+
     class BattleshipBoard {
         constructor() {
             this.clear();
@@ -205,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         placeShip(type, size, startIndex, isHorizontal) {
             if (!this.canPlaceShip(size, startIndex, isHorizontal)) return null;
 
-            const shipId = `ship-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+            const shipId = `ship-${++nextShipId}`;
             const { x, y } = indexToCoords(startIndex);
             const cells = [];
 
