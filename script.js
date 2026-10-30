@@ -802,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnRotateShip.classList.remove('is-vertical');
         const rotateTextEl = btnRotateShip.querySelector('#rotate-btn-text');
         if (rotateTextEl) rotateTextEl.textContent = 'Rotate';
+        btnReadyBattle.textContent = 'Start Game'; // Clear a leftover online "Waiting for opponent..." label
 
         placementGridEl.innerHTML = '';
         for (let i = 0; i < TOTAL_CELLS; i++) {
