@@ -1753,8 +1753,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Battle screen is shown and the match has not concluded yet
+    function isBattleInProgress() {
+        return screenBattle.classList.contains('active') && !isBattleReviewMode;
+    }
+
     function handleOnlineData(data) {
         if (!data || typeof data !== 'object') return;
+
+        // Only lobby handshake messages may arrive before the opponent is known; all game messages must come from them
+        const isHandshake = data.type === 'JOINER_HELLO' || data.type === 'ROOM_FULL' || data.type === 'LOBBY_READY';
+        if (!isHandshake && (!opponentPlayerId || data.senderId !== opponentPlayerId)) return;
 
         switch (data.type) {
             case 'JOINER_HELLO':
@@ -1802,6 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'FLEET_READY':
+                if (!screenPlacement.classList.contains('active')) return;
                 onlineOpponentReady = true;
                 showToast('Opponent ready');
                 if (player1Board.isFleetReady() && myOnlineRole === 'host') {
@@ -1812,12 +1822,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'START_BATTLE':
+                if (myOnlineRole !== 'joiner' || !screenPlacement.classList.contains('active')) return;
                 launchBattle(data.firstTurn === 'host' ? 1 : 2);
                 break;
 
             case 'FIRE_SHOT': {
                 // Incoming shot on our fleet!
                 const incomingIndex = data.index;
+                if (!screenBattle.classList.contains('active') || !Number.isInteger(incomingIndex) || incomingIndex < 0 || incomingIndex >= TOTAL_CELLS) return;
+
+                // A new shot only counts during the battle on the opponent's turn; retries of answered shots are re-answered below
+                const isOpponentTurn = (myOnlineRole === 'host') ? activePlayer === 2 : activePlayer === 1;
+                if (player1Board.shots[incomingIndex] === null && (isBattleReviewMode || !isOpponentTurn)) return;
+
                 let result = player1Board.receiveShot(incomingIndex);
 
                 // If already shot previously (idempotent retry from opponent due to dropped packet)
@@ -1893,10 +1910,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             case 'SHOT_RESPONSE': {
+                // Only the answer to our current pending shot counts (duplicate or late responses are dropped)
+                if (!pendingShot || data.shotId !== pendingShot.shotId) return;
+                const shotIdx = pendingShot.index;
+
                 // Opponent evaluated our shot! Clear pending shot timeout
                 clearShotTimeout();
                 isShootingAllowed = true;
-                const shotIdx = data.index;
 
                 // Update opponent radar grid locally
                 if (data.result === 'miss') {
@@ -1989,6 +2009,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'SURRENDER':
+                if (!isBattleInProgress()) return;
                 showToast('Opponent surrendered', 'success');
                 handleGameOver(true);
                 break;
