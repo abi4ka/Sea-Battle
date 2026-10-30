@@ -762,6 +762,18 @@ body {
     box-shadow: 0 0 8px rgba(244, 63, 94, 0.5) !important;
 }
 
+/* Keyboard focus (cells are reached with Tab + arrow keys) */
+.battle-grid .cell:focus-visible {
+    outline: 2px solid var(--color-fg-default) !important;
+    outline-offset: -2px;
+    z-index: 3;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+}
+
 /* Fleet locked after pressing Ready (online) */
 #placement-grid.locked,
 #placement-grid.locked .cell {

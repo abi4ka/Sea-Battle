@@ -163,6 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return y * GRID_SIZE + x;
     }
 
+    // Screen reader label for a board cell, e.g. "B4, hit"
+    function cellLabel(idx, state) {
+        const { x, y } = indexToCoords(idx);
+        return `${'ABCDEFGHIJ'[x]}${y + 1}, ${state}`;
+    }
+
     // ==========================================
     // BOARD LOGIC CLASS
     // ==========================================
@@ -775,6 +781,56 @@ document.addEventListener('DOMContentLoaded', () => {
         modalRules.classList.remove('active');
     });
 
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalRules.classList.contains('active')) {
+            modalRules.classList.remove('active');
+        }
+    });
+
+    // ==========================================
+    // BOARD KEYBOARD ACCESS
+    // ==========================================
+    // Interactive boards are a single tab stop: arrow keys move between cells, Enter/Space activate
+    function createGridCell(idx) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.index = idx;
+        cell.setAttribute('role', 'button');
+        cell.tabIndex = idx === 0 ? 0 : -1;
+        return cell;
+    }
+
+    function setupGridKeyboard(gridEl, onActivate) {
+        gridEl.addEventListener('focusin', (e) => {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            gridEl.querySelectorAll('.cell').forEach(c => {
+                c.tabIndex = c === cell ? 0 : -1;
+            });
+        });
+
+        gridEl.addEventListener('keydown', (e) => {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            const idx = Number(cell.dataset.index);
+
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onActivate(idx);
+                return;
+            }
+
+            const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+            const move = moves[e.key];
+            if (!move) return;
+            e.preventDefault();
+            const { x, y } = indexToCoords(idx);
+            const nextIdx = coordsToIndex(x + move[0], y + move[1]);
+            const nextCell = nextIdx !== -1 ? gridEl.querySelectorAll('.cell')[nextIdx] : null;
+            if (nextCell) nextCell.focus();
+        });
+    }
+
     // ==========================================
     // FLEET PLACEMENT LOGIC
     // ==========================================
@@ -806,9 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         placementGridEl.innerHTML = '';
         for (let i = 0; i < TOTAL_CELLS; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.index = i;
+            const cell = createGridCell(i);
 
             cell.addEventListener('mouseenter', () => onPlacementCellHover(i));
             cell.addEventListener('click', () => onPlacementCellClick(i));
@@ -901,6 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 cell.removeAttribute('title');
             }
+            cell.setAttribute('aria-label', cellLabel(idx, shipId ? 'ship' : 'empty'));
         });
     }
 
@@ -1009,6 +1064,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Placement grid mouse leave and right-click to rotate
     placementGridEl.addEventListener('mouseleave', () => {
+        currentHoverIndex = null;
+        clearPlacementPreviews();
+    });
+
+    // Keyboard focus previews the ship like hovering does
+    setupGridKeyboard(placementGridEl, onPlacementCellClick);
+
+    placementGridEl.addEventListener('focusin', (e) => {
+        const cell = e.target.closest('.cell');
+        if (cell) onPlacementCellHover(Number(cell.dataset.index));
+    });
+
+    placementGridEl.addEventListener('focusout', (e) => {
+        if (placementGridEl.contains(e.relatedTarget)) return;
         currentHoverIndex = null;
         clearPlacementPreviews();
     });
@@ -1151,15 +1220,15 @@ document.addEventListener('DOMContentLoaded', () => {
             myBattleGridEl.appendChild(myCell);
 
             // Radar target board cell
-            const enemyCell = document.createElement('div');
-            enemyCell.className = 'cell';
-            enemyCell.dataset.index = i;
+            const enemyCell = createGridCell(i);
             enemyCell.addEventListener('click', () => onPlayerFire(i));
             enemyBattleGridEl.appendChild(enemyCell);
         }
 
         renderBattleBoards();
     }
+
+    setupGridKeyboard(enemyBattleGridEl, onPlayerFire);
 
     function renderBattleBoards() {
         const myBoard = player1Board;
@@ -1190,6 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const enemyCells = enemyBattleGridEl.querySelectorAll('.cell');
         enemyCells.forEach((cell, idx) => {
             cell.className = 'cell';
+            let cellState = enemyBoard.shots[idx] || 'empty';
             if (enemyBoard.shots[idx] === 'miss') {
                 cell.classList.add('state-miss');
             } else if (enemyBoard.shots[idx] === 'hit') {
@@ -1200,8 +1270,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasShip = enemyBoard.grid && enemyBoard.grid[idx] !== null;
                 if (hasShip) {
                     cell.classList.add('enemy-revealed-ship');
+                    cellState = 'ship';
                 }
             }
+            cell.setAttribute('aria-label', cellLabel(idx, cellState));
 
             if (enemyBoard.lastShotIndex === idx) {
                 cell.classList.add('last-shot-highlight');
