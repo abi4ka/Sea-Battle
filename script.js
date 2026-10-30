@@ -763,6 +763,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return player1Board;
     }
 
+    // Fleet is final once this player pressed Ready in an online match
+    function isPlacementLocked() {
+        return gameMode === 'online' && meReady;
+    }
+
+    function updatePlacementLockUI() {
+        const locked = isPlacementLocked();
+        btnRotateShip.disabled = locked;
+        btnRandomPlacement.disabled = locked;
+        btnClearPlacement.disabled = locked;
+        placementGridEl.classList.toggle('locked', locked);
+    }
+
     function initPlacementGrid() {
         isHorizontalPlacement = true;
         currentHoverIndex = null;
@@ -782,6 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             placementGridEl.appendChild(cell);
         }
+        updatePlacementLockUI();
         renderPlacementGrid();
         renderShipInventory();
     }
@@ -825,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.appendChild(info);
 
             item.addEventListener('click', () => {
-                if (!isCompleted) {
+                if (!isCompleted && !isPlacementLocked()) {
                     selectedShipType = def.type;
                     renderShipInventory();
                     sound.play('place');
@@ -838,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalPlaced = board.ships.length;
         placementCountEl.textContent = `${totalPlaced} / 10`;
         placementCountEl.classList.toggle('ready', totalPlaced === 10);
-        btnReadyBattle.disabled = totalPlaced !== 10;
+        btnReadyBattle.disabled = totalPlaced !== 10 || isPlacementLocked();
 
         // Auto-select next available ship type if current is completed
         const curDef = FLEET_DEFINITIONS.find(d => d.type === selectedShipType);
@@ -861,6 +875,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const shipId = board.grid[idx];
             if (shipId) {
                 cell.classList.add('has-ship');
+            }
+            if (shipId && !isPlacementLocked()) {
                 cell.title = 'Click to remove ship';
             } else {
                 cell.removeAttribute('title');
@@ -871,6 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function onPlacementCellHover(startIndex) {
         currentHoverIndex = startIndex;
         clearPlacementPreviews();
+        if (isPlacementLocked()) return;
         const board = getCurrentPlacementBoard();
         const shipDef = FLEET_DEFINITIONS.find(d => d.type === selectedShipType);
         if (!shipDef) return;
@@ -908,6 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function onPlacementCellClick(startIndex) {
+        if (isPlacementLocked()) return;
         const board = getCurrentPlacementBoard();
         const existingShipId = board.grid[startIndex];
 
@@ -953,6 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Toggle orientation
     function toggleOrientation() {
+        if (isPlacementLocked()) return;
         isHorizontalPlacement = !isHorizontalPlacement;
         dockOrientationLabel.textContent = isHorizontalPlacement ? 'Horizontal' : 'Vertical';
         btnRotateShip.classList.toggle('is-vertical', !isHorizontalPlacement);
@@ -994,6 +1013,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnRandomPlacement.addEventListener('click', () => {
+        if (isPlacementLocked()) return;
         const board = getCurrentPlacementBoard();
         board.randomize();
         sound.play('place');
@@ -1002,6 +1022,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnClearPlacement.addEventListener('click', () => {
+        if (isPlacementLocked()) return;
         const board = getCurrentPlacementBoard();
         board.clear();
         sound.play('place');
@@ -1016,6 +1037,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameMode === 'online') {
             // Send FLEET_READY over realtime channel
             meReady = true;
+            updatePlacementLockUI();
+            renderPlacementGrid();
             sendOnlineData({ type: 'FLEET_READY' });
             btnReadyBattle.disabled = true;
             btnReadyBattle.textContent = 'Waiting for opponent...';

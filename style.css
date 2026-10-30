@@ -762,6 +762,21 @@ body {
     box-shadow: 0 0 8px rgba(244, 63, 94, 0.5) !important;
 }
 
+/* Fleet locked after pressing Ready (online) */
+#placement-grid.locked,
+#placement-grid.locked .cell {
+    cursor: default;
+}
+
+#placement-grid.locked .cell:hover:not(.has-ship) {
+    background: rgba(18, 24, 38, 0.85);
+}
+
+#screen-placement #placement-grid.locked .cell.has-ship:hover {
+    background: #38bdf8 !important;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4) !important;
+}
+
 /* Placement Preview */
 .cell.preview-valid {
     background: rgba(56, 189, 248, 0.4) !important;
