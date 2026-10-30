@@ -660,12 +660,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDisconnectHandled = false;
     let pendingShot = null;
     let shotTimeoutId = null;
+    let aiTurnTimeoutId = null;
     let myPlayerId = null;
     let opponentPlayerId = null;
     let isRoomLocked = false;
 
     function generatePlayerId(role) {
         return `${role}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+
+    // A pending AI move must never fire after the game ended (e.g. surrender during the AI turn)
+    function clearAiTurn() {
+        if (aiTurnTimeoutId) {
+            clearTimeout(aiTurnTimeoutId);
+            aiTurnTimeoutId = null;
+        }
     }
 
     function clearShotTimeout() {
@@ -1025,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function launchBattle(startingPlayer = 1) {
+        clearAiTurn();
         activePlayer = startingPlayer;
         battleStats = { shots: 0, hits: 0 };
         isShootingAllowed = true;
@@ -1340,8 +1350,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function triggerAiTurn(delay = 700) {
-        setTimeout(() => {
-            if (activePlayer !== 2 || screenBattle.classList.contains('active') === false) return;
+        clearAiTurn();
+        aiTurnTimeoutId = setTimeout(() => {
+            aiTurnTimeoutId = null;
+            if (isBattleReviewMode || activePlayer !== 2 || screenBattle.classList.contains('active') === false) return;
 
             const aiShotIndex = aiEngine.getNextShot();
             if (aiShotIndex === null) return;
@@ -1390,6 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     function handleGameOver(isWinner, customTitle = null, customDesc = null) {
         clearShotTimeout();
+        clearAiTurn();
         isShootingAllowed = false;
         isBattleReviewMode = true;
 
@@ -1640,6 +1653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function leaveToMainMenu() {
         clearJoinTimeout();
         clearShotTimeout();
+        clearAiTurn();
         clearUrlRoomParam();
         await leaveSupabaseRoom();
         player1Board.clear();
