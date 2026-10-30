@@ -654,6 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let myOnlineRole = null; // 'host' or 'joiner'
     let isOnlineConnected = false;
     let onlineOpponentReady = false;
+    let meReady = false; // Set only when this player pressed Start/Ready during the current placement
     let isCodeRevealed = false;
     let joinTimeout = null;
     let rematchRequested = { me: false, opponent: false };
@@ -1014,6 +1015,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnReadyBattle.addEventListener('click', () => {
         if (gameMode === 'online') {
             // Send FLEET_READY over realtime channel
+            meReady = true;
             sendOnlineData({ type: 'FLEET_READY' });
             btnReadyBattle.disabled = true;
             btnReadyBattle.textContent = 'Waiting for opponent...';
@@ -1660,6 +1662,7 @@ document.addEventListener('DOMContentLoaded', () => {
         player2Board.clear();
         rematchRequested = { me: false, opponent: false };
         onlineOpponentReady = false;
+        meReady = false;
         isDisconnectHandled = false;
         myPlayerId = null;
         opponentPlayerId = null;
@@ -1817,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!screenPlacement.classList.contains('active')) return;
                 onlineOpponentReady = true;
                 showToast('Opponent ready');
-                if (player1Board.isFleetReady() && myOnlineRole === 'host') {
+                if (meReady && myOnlineRole === 'host') {
                     const firstTurn = Math.random() < 0.5 ? 'host' : 'joiner';
                     sendOnlineData({ type: 'START_BATTLE', firstTurn });
                     launchBattle(firstTurn === 'host' ? 1 : 2);
@@ -1825,7 +1828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'START_BATTLE':
-                if (myOnlineRole !== 'joiner' || !screenPlacement.classList.contains('active')) return;
+                if (myOnlineRole !== 'joiner' || !meReady || !screenPlacement.classList.contains('active')) return;
                 launchBattle(data.firstTurn === 'host' ? 1 : 2);
                 break;
 
@@ -2061,6 +2064,7 @@ document.addEventListener('DOMContentLoaded', () => {
         player1Board.clear();
         player2Board.clear();
         onlineOpponentReady = false;
+        meReady = false;
         rematchRequested = { me: false, opponent: false };
         placementPlayerTag.textContent = myOnlineRole === 'host' ? 'HOST' : 'GUEST';
         btnReadyBattle.disabled = true;
