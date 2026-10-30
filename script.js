@@ -1502,11 +1502,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRematchAction() {
-        if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
-        if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
-        isBattleReviewMode = false;
-
         if (gameMode === 'online') {
+            // Game-over state stays until the new placement actually starts (startOnlinePlacement resets it)
+            if (rematchRequested.me) return;
             rematchRequested.me = true;
             sendOnlineData({ type: 'REMATCH_REQUEST' });
             if (rematchRequested.opponent) {
@@ -1516,6 +1514,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (btnReviewRematchText) btnReviewRematchText.textContent = 'Waiting...';
             }
         } else {
+            if (postGameReviewBar) postGameReviewBar.classList.add('hidden');
+            if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
+            isBattleReviewMode = false;
+
             // Reset for AI
             player1Board.clear();
             player2Board.clear();
