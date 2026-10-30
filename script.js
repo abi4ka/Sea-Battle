@@ -4,13 +4,28 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Storage access throws when site data is blocked: fall back to defaults instead of breaking startup
+    function storageGet(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function storageSet(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {}
+    }
+
     // ==========================================
     // AUDIO ENGINE (Web Audio API Synthesizer)
     // ==========================================
     class SoundEngine {
         constructor() {
             this.ctx = null;
-            this.isMuted = localStorage.getItem('sea_battle_muted') === 'true';
+            this.isMuted = storageGet('sea_battle_muted') === 'true';
         }
 
         initContext() {
@@ -27,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toggleMute() {
             this.isMuted = !this.isMuted;
-            localStorage.setItem('sea_battle_muted', this.isMuted);
+            storageSet('sea_battle_muted', this.isMuted);
             return this.isMuted;
         }
 
