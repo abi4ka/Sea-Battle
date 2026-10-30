@@ -1619,3 +1619,24 @@ body {
         font-size: 0.65rem;
     }
 }
+
+/* Narrowest phones (320px): tighter spacing and cells so the boards fit without horizontal scroll */
+@media (max-width: 359px) {
+    :root {
+        --grid-cell-size: 23px;
+    }
+
+    .main-stage {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .card,
+    #screen-placement {
+        padding: 12px;
+    }
+
+    .grid-outer {
+        padding: 6px;
+    }
+}
