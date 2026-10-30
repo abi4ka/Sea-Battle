@@ -1721,7 +1721,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function leaveSupabaseRoom() {
         if (gameChannel) {
             try {
-                await sendOnlineData({ type: 'PLAYER_LEFT' });
+                // Only a matched participant may announce leaving (a rejected extra player must not end the match)
+                if (opponentPlayerId) {
+                    await sendOnlineData({ type: 'PLAYER_LEFT' });
+                }
                 await gameChannel.untrack();
                 await gameChannel.unsubscribe();
             } catch (e) {}
@@ -2273,7 +2276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Notify opponent if tab or window is closed during online game
     window.addEventListener('beforeunload', () => {
-        if (gameMode === 'online' && gameChannel) {
+        if (gameMode === 'online' && gameChannel && opponentPlayerId) {
             sendOnlineData({ type: 'PLAYER_LEFT' });
         }
     });
