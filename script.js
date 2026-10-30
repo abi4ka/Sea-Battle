@@ -2340,19 +2340,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Clipboard may be unavailable or denied (insecure context, permissions): report the real outcome
+    function copyToClipboard(text, successMessage) {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+            showToast('Copy failed', 'danger');
+            return;
+        }
+        navigator.clipboard.writeText(text)
+            .then(() => showToast(successMessage))
+            .catch(() => showToast('Copy failed', 'danger'));
+    }
+
     // Copy Room Code & Direct Link
     btnCopyCode.addEventListener('click', () => {
         if (roomCode) {
-            navigator.clipboard.writeText(roomCode);
-            showToast('Code copied');
+            copyToClipboard(roomCode, 'Code copied');
         }
     });
 
     btnCopyLink.addEventListener('click', () => {
         if (roomCode) {
             const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
-            navigator.clipboard.writeText(url);
-            showToast('Link copied');
+            copyToClipboard(url, 'Link copied');
         }
     });
 
@@ -2366,16 +2375,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnCopyGameCode.addEventListener('click', () => {
         if (roomCode) {
-            navigator.clipboard.writeText(roomCode);
-            showToast('Code copied');
+            copyToClipboard(roomCode, 'Code copied');
         }
     });
 
     btnShareOnline.addEventListener('click', () => {
         if (roomCode) {
             const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
-            navigator.clipboard.writeText(url);
-            showToast('Link copied');
+            copyToClipboard(url, 'Link copied');
         }
     });
 
