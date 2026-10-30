@@ -1696,6 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (enemyBattleGridEl) enemyBattleGridEl.classList.remove('battle-finished');
         if (btnSurrender) btnSurrender.classList.remove('hidden');
         if (turnSubtitle) turnSubtitle.classList.add('hidden');
+        setLobbyBusy(false);
         showScreen(screenMenu);
     }
 
@@ -1744,6 +1745,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return code;
     }
 
+    // Create/Join stay disabled while a room connection is open or being established
+    function setLobbyBusy(isBusy) {
+        btnCreateRoom.disabled = isBusy;
+        btnJoinRoom.disabled = isBusy;
+    }
+
+    // supabase-js hands back the existing channel for a topic, so a stale one must be removed before subscribing again
+    async function removeGameChannel() {
+        if (!gameChannel) return;
+        const channel = gameChannel;
+        gameChannel = null;
+        try {
+            await supabase.removeChannel(channel);
+        } catch (e) {}
+    }
+
     async function leaveSupabaseRoom() {
         if (gameChannel) {
             try {
@@ -1752,9 +1769,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     await sendOnlineData({ type: 'PLAYER_LEFT' });
                 }
                 await gameChannel.untrack();
-                await gameChannel.unsubscribe();
             } catch (e) {}
-            gameChannel = null;
+            await removeGameChannel();
         }
         roomCode = null;
         myOnlineRole = null;
@@ -2103,10 +2119,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Host: Create Room
     btnCreateRoom.addEventListener('click', async () => {
+        if (btnCreateRoom.disabled) return;
         if (!initSupabase()) {
             showToast('Server connection error', 'danger');
             return;
         }
+
+        setLobbyBusy(true);
+        await removeGameChannel();
 
         roomCode = generateRoomCode();
         myOnlineRole = 'host';
@@ -2119,18 +2139,21 @@ document.addEventListener('DOMContentLoaded', () => {
         isDisconnectHandled = false;
 
         const channelName = `sea-battle-room-${roomCode}`;
-        gameChannel = supabase.channel(channelName, {
+        const channel = supabase.channel(channelName, {
             config: {
                 broadcast: { ack: false, self: false },
                 presence: { key: `host-${myPlayerId}` }
             }
         });
+        gameChannel = channel;
 
-        gameChannel.on('broadcast', { event: 'game-event' }, ({ payload }) => {
+        channel.on('broadcast', { event: 'game-event' }, ({ payload }) => {
+            if (channel !== gameChannel) return;
             handleOnlineData(payload);
         });
 
-        gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            if (channel !== gameChannel) return;
             if (!leftPresences || !Array.isArray(leftPresences)) return;
             const opponentLeft = leftPresences.some(p => {
                 if (opponentPlayerId) {
@@ -2143,22 +2166,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        gameChannel.subscribe(async (status) => {
+        channel.subscribe(async (status) => {
+            if (channel !== gameChannel) return;
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
-                await gameChannel.track({ role: 'host', playerId: myPlayerId });
+                await channel.track({ role: 'host', playerId: myPlayerId });
                 showScreen(screenWaiting);
                 showToast('Room created');
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                 networkStatusBadge.classList.remove('connected');
                 networkStatusText.textContent = 'Connection Error';
                 showToast('Connection error', 'danger');
+                setLobbyBusy(false);
             }
         });
     });
 
     // Joiner: Join Room
     btnJoinRoom.addEventListener('click', async () => {
+        if (btnJoinRoom.disabled) return;
         const code = inputRoomCode.value.trim().toUpperCase();
         if (code.length !== 6) {
             showToast('Enter 6-char code', 'danger');
@@ -2174,6 +2200,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        setLobbyBusy(true);
+        await removeGameChannel();
+
         roomCode = code;
         myOnlineRole = 'joiner';
         myPlayerId = generatePlayerId('joiner');
@@ -2182,18 +2211,21 @@ document.addEventListener('DOMContentLoaded', () => {
         isDisconnectHandled = false;
         const channelName = `sea-battle-room-${roomCode}`;
 
-        gameChannel = supabase.channel(channelName, {
+        const channel = supabase.channel(channelName, {
             config: {
                 broadcast: { ack: false, self: false },
                 presence: { key: `joiner-${myPlayerId}` }
             }
         });
+        gameChannel = channel;
 
-        gameChannel.on('broadcast', { event: 'game-event' }, ({ payload }) => {
+        channel.on('broadcast', { event: 'game-event' }, ({ payload }) => {
+            if (channel !== gameChannel) return;
             handleOnlineData(payload);
         });
 
-        gameChannel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            if (channel !== gameChannel) return;
             if (!leftPresences || !Array.isArray(leftPresences)) return;
             const opponentLeft = leftPresences.some(p => {
                 if (opponentPlayerId) {
@@ -2206,10 +2238,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        gameChannel.subscribe(async (status) => {
+        channel.subscribe(async (status) => {
+            if (channel !== gameChannel) return;
             if (status === 'SUBSCRIBED') {
                 isOnlineConnected = true;
-                await gameChannel.track({ role: 'joiner', playerId: myPlayerId });
+                await channel.track({ role: 'joiner', playerId: myPlayerId });
                 // Alert host with our unique playerId
                 sendOnlineData({ type: 'JOINER_HELLO', playerId: myPlayerId });
 
@@ -2221,6 +2254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 networkStatusBadge.classList.remove('connected');
                 networkStatusText.textContent = 'Connection Error';
                 showToast('Connection error', 'danger');
+                setLobbyBusy(false);
             }
         });
     }
